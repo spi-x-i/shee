@@ -23,10 +23,6 @@ def check_dependencies():
     except ImportError:
         install_requires.append('numpy')
     try:
-        import scipy
-    except ImportError:
-        install_requires.append('scipy')
-    try:
         import matplotlib
     except ImportError:
         install_requires.append('matplotlib')
@@ -41,12 +37,13 @@ if __name__ == "__main__":
 
     setup(
         name='shee',
+        author='Andrea Spina',
+        author_email='74598@studenti.unimore.it',
         version='0.1',
         description='A simple data visualization tool.',
         url='bla',
-        author='Andrea Spina',
-        author_email='74598@studenti.unimore.it',
         license='uncommon',
         packages=['shee'],
+        install_requires=install_requires,
         zip_safe=False)
 
