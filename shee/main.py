@@ -4,9 +4,13 @@
 import os
 
 import pandas as pd
+import matplotlib as mp
 import matplotlib.pyplot as plt
 
-DIR = "/home/andrea/TESI/PYTHON/shee-project/shee/dstat"
+from DStatFrame import DStatCpu
+
+DIR = "/home/andrea/TESI/PYTHON/shee-project/shee/examples"
+
 def main():
     """
     The tool must provide following functions:
@@ -16,63 +20,30 @@ def main():
     """
 
     # qualcosa tipo if not newdir
-    dir ="/home/andrea/TESI/PYTHON/shee-project/shee/dstat/"
+    dir = DIR
 
     # per ogni file .csv all'interno di questa cartella apro i file .csv
     for fn in os.listdir(dir):
         # d'ora in avanti il path deve essere assoluto
-        fn = os.path.join(dir, fn)
-        if os.path.isfile(fn):
-            try:
-                df = pd.read_csv(
-                    filepath_or_buffer=fn,
-                    sep=",",
-                    skip_blank_lines=True,
-                    header=[2,3],
-                )
-            except Exception as e:
-                print "Not possible to open .csv  caused by %s" % e.message
+        fullname = os.path.join(dir, fn)
+        print fullname
+        if os.path.isfile(fullname) and fn.startswith('dstat'):
+            ds = DStatCpu(fullname)
 
-            # convert unix timestamp to datetime param
-            df['epoch', 'epoch'] = pd.to_datetime(df['epoch', 'epoch'], unit='s')
+            dn = fullname.split('.')[0]
+            if not os.path.exists(dn):
+                os.makedirs(dn)
 
-            # convert first outer column level due to read_csv bug
-            df = fix_columns(df)
+            # metodo che plotta tutti i grafici uno per uno
+            # ds.plot_all()
+            # metodo che plotta tutto in un solo grafico
+            ds.plot_together()
+            # metodo che subplotta tutto in un solo grafico
+            ds.subplot_all()
 
-            plt.plot(df['epoch', 'epoch'], df['total cpu usage'])
-            plt.show()
-
-
-            break
-
-
-
+            ds.plot_stacked(columns=['usr', 'sys', 'idl'])
         else:
             print "%s Not is a file" % fn
-
-
-def fix_columns(df, level = 0, to_replace = 'Unnamed'):
-    """
-    Fix column method: replace columns unnamed values; needed for multi-indexing plotting
-
-    :param df:
-    :param level:
-    :param to_replace:
-    :return:
-    """
-    cols = df.columns.values
-    replace_value = ""
-    new_cols = {}
-
-    for col in cols:
-        if to_replace in col[level]:
-            new_cols[col[level]] = replace_value
-        else:
-            replace_value = col[level]
-
-    df.rename(columns=new_cols, inplace=True)
-
-    return df
 
 
 
