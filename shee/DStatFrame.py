@@ -37,11 +37,13 @@ class DStatFixColumnsException(DStatException):
 
 class DStatFrame(object):
 
-    def __init__(self, filename):
+    def __init__(self, filename, name):
         try:
             self.df = self._open_csv(filename)
-            name = filename.split(".")[0]
-            self.filename = name + '/' + name.split("/")[-1]
+            sname = filename.split(".")[0]
+            self.filename = sname + '/' + sname.split("/")[-1]
+            self.device = None
+            self.name = name
         except Exception as e:
             raise OpenCsvException(e.message)
         try:
@@ -63,7 +65,12 @@ class DStatFrame(object):
         )
 
     def _to_datetime(self):
-        # convert unix timestamp to datetime param
+        """
+        Method converting unix timestamp Series column to datetime column UTC+1
+        :return:
+        """
+        # add on hour time (UTC:+1:00)
+        self.df['epoch', 'epoch'] += 3600
         self.df['epoch', 'epoch'] = pd.to_datetime(self.df['epoch', 'epoch'], unit='s')
 
     def _fix_columns(self, level=0, to_replace='Unnamed'):
@@ -89,16 +96,85 @@ class DStatFrame(object):
     def save(self, suffix):
         outname = self.filename + '-' + suffix + '.png'
         plt.savefig(outname, bbox_inches='tight')
+        print outname + " created"
+
+    def plot_together(self, plot=False):
+        """
+        This method plots all value in the second level of the column in one graph, no stacked lines
+        """
+        plot_title, save_title = self._get_titles()
+
+        ax = self.df.plot(kind='line', x='epoch', title=plot_title)
+
+        self._set_layout(ax)
+
+        if plot:
+            plt.show()
+        else:
+            self.save(save_title + "line")
+            plt.close()
+
+    def plot_stacked(self, columns=None, plot=False):
+        """
+
+        :param columns:
+        :param plot:
+        :return:
+        """
+        plot_title, save_title = self._get_titles()
+
+        ax = self.df.plot.area(stacked=False, x='epoch', y=columns, title=plot_title)
+
+        self._set_layout(ax)
+
+        if plot:
+            plt.show()
+        else:
+            name = save_title + 'stacked'
+            for col in columns:
+                name += ('-' + col)
+            self.save(name)
+            plt.close()
+
+    def _set_unit(self):
+        if self.name == 'cpu':
+            return "percentage"
+        elif self.name == 'network':
+            return "bandwidth [MBps]"
+        else:
+            return "memory usage"
+
+    def _set_layout(self, ax):
+        unit = self._set_unit()
+        ax.set_xlabel("time")
+        ax.xaxis.grid(True)
+        ax.set_ylabel(self._set_unit())
+        ax.yaxis.grid(True)
+
+        box = ax.get_position()
+        ax.set_position([box.x0, box.y0, box.width, box.height])
+
+        plt.legend(loc="upper left", bbox_to_anchor=(1, 0.5))
+
+    def _get_titles(self):
+        if self.device is not None:
+            plot_title = self.name.upper() + str(self.device) + " Usage"
+            save_title = self.name + "-" + str(self.device) + "-"
+        else:
+            plot_title = "Total " + self.name.upper() + " Usage"
+            save_title = "total-" + self.name + "-"
+        return plot_title, save_title
 
 
 class DStatCpu(DStatFrame):
 
-    def __init__(self, filename, cpu=None):
-        super(DStatCpu, self).__init__(filename)
+    def __init__(self, filename, name, cpu=None):
+        super(DStatCpu, self).__init__(filename, name)
         if cpu is not None:
             df = self.df[['epoch', 'cpu' + str(cpu) + ' usage']]
             df.columns = df.columns.droplevel()
             self.df = df
+            self.device = cpu
         else:
             df = self.df[['epoch', 'total cpu usage']]
             df.columns = df.columns.droplevel()
@@ -107,91 +183,147 @@ class DStatCpu(DStatFrame):
     def plot_all(self):
         pass
 
-    def plot_together(self, plot=False):
-        """
-        This method plots all value in the second level of the column in one graph, no stacked lines
-        :return:
-        """
-        ax = self.df.plot(kind='line', x='epoch', title="Total CPU Usage")
-
-        ax.set_xlabel("time")
-        ax.xaxis.grid(True)
-        ax.set_ylabel("percentage")
-        ax.yaxis.grid(True)
-
-        box = ax.get_position()
-        ax.set_position([box.x0, box.y0, box.width, box.height])
-
-        plt.legend(loc="upper left", bbox_to_anchor=(1, 0.5))
-
-        if plot:
-            plt.show()
-        else:
-            self.save('total-cpu-line')
-            plt.close()
-
     def subplot_all(self, plot=False):
+        plot_title, save_title = self._get_titles()
+
         # row and column sharing
         fig, ((ax1, ax2, ax3), (ax4, ax5, ax6)) = plt.subplots(2, 3, sharex='col', sharey='row')
 
         hours = mdates.HourLocator()  # every year
         mins = mdates.MinuteLocator()  # every month
-        # yearsFmt = mdates.DateFormatter('%Y')
 
-        ax1.set_title('usr')
-        ax1.plot(self.df['epoch'], self.df['usr'])
-        ax1.set_ylabel('Tot. cpu usage (%)')
-        ax2.set_title('sys')
-        ax2.plot(self.df['epoch'], self.df['sys'])
-        ax3.set_title('idl')
-        ax3.plot(self.df['epoch'], self.df['idl'])
+        self._set_subplots_title_and_plot(ax1, 'epoch', 'usr')
+        ax1.set_ylabel(plot_title + '(%)')
+
+        self._set_subplots_title_and_plot(ax1, 'epoch', 'sys')
+
+        self._set_subplots_title_and_plot(ax1, 'epoch', 'idl')
+
         ax4.set_ylim([0, 100])
-        ax4.set_title('wai')
-        ax4.plot(self.df['epoch'], self.df['wai'])
-        ax4.set_ylabel('Tot. cpu usage (%)')
-        ax4.xaxis.set_major_locator(hours)
-        ax4.xaxis.set_minor_locator(mins)
-        ax4.xaxis.set_major_formatter(mdates.DateFormatter(''))
-        ax4.xaxis.set_minor_formatter(mdates.DateFormatter('%H:%M'))
-        ax5.set_title('hiq')
-        ax5.plot(self.df['epoch'], self.df['hiq'])
+        self._set_subplots_title_and_plot(ax4, 'epoch', 'wai')
+        self._set_subplots_time(ax=ax4, hours=hours, mins=mins)
+        ax4.set_ylabel(plot_title + '(%)')
+
+        self._set_subplots_title_and_plot(ax5, 'epoch', 'hiq')
+        self._set_subplots_time(ax=ax5, hours=hours, mins=mins)
         ax5.set_xlabel('time')
-        ax5.xaxis.set_major_locator(hours)
-        ax5.xaxis.set_minor_locator(mins)
-        ax5.xaxis.set_major_formatter(mdates.DateFormatter(''))
-        ax5.xaxis.set_minor_formatter(mdates.DateFormatter('%H:%M'))
-        ax6.set_title('siq')
-        ax6.plot(self.df['epoch'], self.df['siq'])
-        ax6.xaxis.set_major_locator(hours)
-        ax6.xaxis.set_minor_locator(mins)
-        ax6.xaxis.set_major_formatter(mdates.DateFormatter(''))
-        ax6.xaxis.set_minor_formatter(mdates.DateFormatter('%H:%M'))
+
+        self._set_subplots_title_and_plot(ax6, 'epoch', 'siq')
+        self._set_subplots_time(ax=ax6, hours=hours, mins=mins)
 
         if plot:
             plt.show()
         else:
-            self.save('total-cpu-subplot')
+            self.save(save_title + "subplots")
             plt.close()
 
-    def plot_stacked(self, columns=None, plot=False):
+    def _set_subplots_title_and_plot(self, ax, xlab, ylab):
+        ax.set_title(ylab)
+        ax.plot(self.df[xlab], self.df[ylab])
 
-        ax = self.df.plot.area(stacked=False, x='epoch', y=columns)
+    @staticmethod
+    def _set_subplots_time(ax, hours, mins):
+        ax.xaxis.set_major_locator(hours)
+        ax.xaxis.set_minor_locator(mins)
+        ax.xaxis.set_major_formatter(mdates.DateFormatter(''))
+        ax.xaxis.set_minor_formatter(mdates.DateFormatter('%H:%M'))
 
-        ax.set_xlabel("time")
-        ax.xaxis.grid(True)
-        ax.set_ylabel("percent")
-        ax.yaxis.grid(True)
 
-        box = ax.get_position()
-        ax.set_position([box.x0, box.y0, box.width, box.height])
+class DStatNetwork(DStatFrame):
 
-        plt.legend(loc="upper left", bbox_to_anchor=(1, 0.5))
+    def __init__(self, filename, name, eth=None):
+        super(DStatNetwork, self).__init__(filename, name)
+        if eth is not None:
+            df = self.df[['epoch', 'net/eth' + str(eth)]]
+            df.columns = df.columns.droplevel()
+            self.df = df
+            self.device = eth
+        else:
+            df = self.df[['epoch', 'net/total']]
+            df.columns = df.columns.droplevel()
+            df.ix[:,df.columns != 'epoch'] = df.ix[:,df.columns != 'epoch'].divide(1024*1024*8)
+            self.df = df
+
+    def subplot_all(self, plot=False):
+        plot_title, save_title = self._get_titles()
+
+        # row and column sharing
+        fig, (ax1, ax2) = plt.subplots(2, 1, sharex='col')
+
+        hours = mdates.HourLocator()  # every year
+        mins = mdates.MinuteLocator()  # every month
+
+        self._set_subplots_title_and_plot(ax1, 'epoch', 'send')
+        ax1.set_ylabel(plot_title + '(%)')
+
+        # ax2.set_ylim([0, 100])
+        self._set_subplots_title_and_plot(ax2, 'epoch', 'recv')
+        self._set_subplots_time(ax=ax2, hours=hours, mins=mins)
+        ax2.set_ylabel(plot_title + '(%)')
 
         if plot:
             plt.show()
         else:
-            name = 'total-cpu-stacked'
-            for col in columns:
-                name += ('-' + col)
-            self.save(name)
+            self.save(save_title + "subplots")
             plt.close()
+
+    def _set_subplots_title_and_plot(self, ax, xlab, ylab):
+        ax.set_title(ylab)
+        ax.plot(self.df[xlab], self.df[ylab])
+
+    @staticmethod
+    def _set_subplots_time(ax, hours, mins):
+        ax.xaxis.set_major_locator(hours)
+        ax.xaxis.set_minor_locator(mins)
+        ax.xaxis.set_major_formatter(mdates.DateFormatter(''))
+        ax.xaxis.set_minor_formatter(mdates.DateFormatter('%H:%M'))
+
+
+class DStatMemory(DStatFrame):
+
+    def __init__(self, filename, name):
+        super(DStatMemory, self).__init__(filename, name)
+        df = self.df[['epoch', 'memory usage']]
+        df.columns = df.columns.droplevel()
+        df.ix[:,df.columns != 'epoch'] = df.ix[:,df.columns != 'epoch'].divide(1024*1024*8)
+        self.df = df
+
+    def subplot_all(self, plot=False):
+        plot_title, save_title = self._get_titles()
+
+        # row and column sharing
+        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, sharex='col', sharey='row')
+
+        hours = mdates.HourLocator()  # every year
+        mins = mdates.MinuteLocator()  # every month
+
+        self._set_subplots_title_and_plot(ax1, 'epoch', 'used')
+        ax1.set_ylabel(plot_title + '(%)')
+
+        self._set_subplots_title_and_plot(ax2, 'epoch', 'buff')
+
+        self._set_subplots_title_and_plot(ax3, 'epoch', 'free')
+        self._set_subplots_time(ax=ax3, hours=hours, mins=mins)
+        ax3.set_ylabel(plot_title)
+
+        self._set_subplots_title_and_plot(ax4, 'epoch', 'cach')
+        self._set_subplots_time(ax=ax4, hours=hours, mins=mins)
+        ax4.set_xlabel('time')
+
+        if plot:
+            plt.show()
+        else:
+            self.save(save_title + "subplots")
+            plt.close()
+
+    def _set_subplots_title_and_plot(self, ax, xlab, ylab):
+        ax.set_title(ylab)
+        ax.plot(self.df[xlab], self.df[ylab])
+
+    @staticmethod
+    def _set_subplots_time(ax, hours, mins):
+        ax.xaxis.set_major_locator(hours)
+        ax.xaxis.set_minor_locator(mins)
+        ax.xaxis.set_major_formatter(mdates.DateFormatter(''))
+        ax.xaxis.set_minor_formatter(mdates.DateFormatter('%H:%M'))
+

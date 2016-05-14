@@ -1,2 +1,2 @@
 # shee
-A simple data visualization tool
+A simple dstat data visualization tool
