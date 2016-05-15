@@ -21,18 +21,27 @@ class OpenCsvException(DStatException):
     """
     Raised when pandas.read_csv fails
     """
+    pass
 
 
 class DateTimeConversionException(DStatException):
     """
     Raised when pandas.to_datetime fails
     """
+    pass
 
 
 class DStatFixColumnsException(DStatException):
     """
     Raised when fix_columns internal method fails
     """
+    pass
+
+class ReadColumnsException(DStatException):
+    """
+    Raised when attempting to read a column that it doesn't exists
+    """
+    pass
 
 
 class DStatFrame(object):
@@ -40,8 +49,7 @@ class DStatFrame(object):
     def __init__(self, filename, name):
         try:
             self.df = self._open_csv(filename)
-            sname = filename.split(".")[0]
-            self.filename = sname + '/' + sname.split("/")[-1]
+            self.filename = ""
             self.device = None
             self.name = name
         except Exception as e:
@@ -63,6 +71,13 @@ class DStatFrame(object):
             skip_blank_lines=True,
             header=[2, 3],
         )
+
+    def _read_dataframe(self, columns):
+        try:
+            df = self.df[columns]
+            return df
+        except KeyError as e:
+            raise ReadColumnsException(e.message)
 
     def _to_datetime(self):
         """
@@ -158,8 +173,9 @@ class DStatFrame(object):
 
     def _get_titles(self):
         if self.device is not None:
-            plot_title = self.name.upper() + str(self.device) + " Usage"
-            save_title = self.name + "-" + str(self.device) + "-"
+            device_name = 'eth' if self.name == 'network' else self.name
+            plot_title = device_name.upper() + str(self.device) + " Usage"
+            save_title = self.name + "-" + device_name + str(self.device) + "-"
         else:
             plot_title = "Total " + self.name.upper() + " Usage"
             save_title = "total-" + self.name + "-"
@@ -168,17 +184,18 @@ class DStatFrame(object):
 
 class DStatCpu(DStatFrame):
 
-    def __init__(self, filename, name, cpu=None):
-        super(DStatCpu, self).__init__(filename, name)
+    def __init__(self, filename, cpu=None):
+        super(DStatCpu, self).__init__(filename, 'cpu')
+        sname = filename.split(".")[0]
         if cpu is not None:
-            df = self.df[['epoch', 'cpu' + str(cpu) + ' usage']]
-            df.columns = df.columns.droplevel()
-            self.df = df
+            self.filename = sname + '/cpu/cpu' + str(cpu) + '/' + sname.split("/")[-1]
+            df = self._read_dataframe(['epoch', 'cpu' + str(cpu) + ' usage'])
             self.device = cpu
         else:
-            df = self.df[['epoch', 'total cpu usage']]
-            df.columns = df.columns.droplevel()
-            self.df = df
+            self.filename = sname + '/cpu/' + sname.split("/")[-1]
+            df = self._read_dataframe(['epoch', 'total cpu usage'])
+        df.columns = df.columns.droplevel()
+        self.df = df
 
     def plot_all(self):
         pass
@@ -187,7 +204,7 @@ class DStatCpu(DStatFrame):
         plot_title, save_title = self._get_titles()
 
         # row and column sharing
-        fig, ((ax1, ax2, ax3), (ax4, ax5, ax6)) = plt.subplots(2, 3, sharex='col', sharey='row')
+        fig, ((ax1, ax2, ax3), (ax4, ax5, ax6)) = plt.subplots(2, 3, sharex=True, sharey=True)
 
         hours = mdates.HourLocator()  # every year
         mins = mdates.MinuteLocator()  # every month
@@ -195,9 +212,9 @@ class DStatCpu(DStatFrame):
         self._set_subplots_title_and_plot(ax1, 'epoch', 'usr')
         ax1.set_ylabel(plot_title + '(%)')
 
-        self._set_subplots_title_and_plot(ax1, 'epoch', 'sys')
+        self._set_subplots_title_and_plot(ax2, 'epoch', 'sys')
 
-        self._set_subplots_title_and_plot(ax1, 'epoch', 'idl')
+        self._set_subplots_title_and_plot(ax3, 'epoch', 'idl')
 
         ax4.set_ylim([0, 100])
         self._set_subplots_title_and_plot(ax4, 'epoch', 'wai')
@@ -231,35 +248,37 @@ class DStatCpu(DStatFrame):
 
 class DStatNetwork(DStatFrame):
 
-    def __init__(self, filename, name, eth=None):
-        super(DStatNetwork, self).__init__(filename, name)
+    def __init__(self, filename, eth=None):
+        super(DStatNetwork, self).__init__(filename, 'network')
+        sname = filename.split(".")[0]
         if eth is not None:
-            df = self.df[['epoch', 'net/eth' + str(eth)]]
-            df.columns = df.columns.droplevel()
-            self.df = df
+            self.filename = sname + '/network/eth' + str(eth) + '/' + sname.split("/")[-1]
+            df = self._read_dataframe(['epoch', 'net/eth' + str(eth)])
             self.device = eth
         else:
-            df = self.df[['epoch', 'net/total']]
-            df.columns = df.columns.droplevel()
-            df.ix[:,df.columns != 'epoch'] = df.ix[:,df.columns != 'epoch'].divide(1024*1024*8)
-            self.df = df
+            self.filename = sname + '/network/' + sname.split("/")[-1]
+            df = self._read_dataframe(['epoch', 'net/total'])
+
+        df.columns = df.columns.droplevel()
+        df.ix[:, df.columns != 'epoch'] = df.ix[:, df.columns != 'epoch'].divide(1024*1024*8)
+        self.df = df
 
     def subplot_all(self, plot=False):
         plot_title, save_title = self._get_titles()
 
         # row and column sharing
-        fig, (ax1, ax2) = plt.subplots(2, 1, sharex='col')
+        fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
 
         hours = mdates.HourLocator()  # every year
         mins = mdates.MinuteLocator()  # every month
 
         self._set_subplots_title_and_plot(ax1, 'epoch', 'send')
-        ax1.set_ylabel(plot_title + '(%)')
+        ax1.set_ylabel(plot_title + 'MBps')
 
-        # ax2.set_ylim([0, 100])
         self._set_subplots_title_and_plot(ax2, 'epoch', 'recv')
         self._set_subplots_time(ax=ax2, hours=hours, mins=mins)
-        ax2.set_ylabel(plot_title + '(%)')
+        ax2.set_ylabel(plot_title + 'MBps')
+        ax2.set_xlabel('time')
 
         if plot:
             plt.show()
@@ -281,30 +300,33 @@ class DStatNetwork(DStatFrame):
 
 class DStatMemory(DStatFrame):
 
-    def __init__(self, filename, name):
-        super(DStatMemory, self).__init__(filename, name)
-        df = self.df[['epoch', 'memory usage']]
+    def __init__(self, filename):
+        super(DStatMemory, self).__init__(filename, 'memory')
+        sname = filename.split(".")[0]
+        self.filename = sname + '/memory/' + sname.split("/")[-1]
+        df = self._read_dataframe(['epoch', 'memory usage'])
         df.columns = df.columns.droplevel()
-        df.ix[:,df.columns != 'epoch'] = df.ix[:,df.columns != 'epoch'].divide(1024*1024*8)
+        df.ix[: ,df.columns != 'epoch'] = df.ix[:,df.columns != 'epoch'].divide(1024*1024*8)
         self.df = df
 
     def subplot_all(self, plot=False):
         plot_title, save_title = self._get_titles()
 
         # row and column sharing
-        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, sharex='col', sharey='row')
+        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, sharex=True, sharey=True)
 
         hours = mdates.HourLocator()  # every year
         mins = mdates.MinuteLocator()  # every month
 
         self._set_subplots_title_and_plot(ax1, 'epoch', 'used')
-        ax1.set_ylabel(plot_title + '(%)')
+        ax1.set_ylabel(plot_title)
 
         self._set_subplots_title_and_plot(ax2, 'epoch', 'buff')
 
         self._set_subplots_title_and_plot(ax3, 'epoch', 'free')
         self._set_subplots_time(ax=ax3, hours=hours, mins=mins)
         ax3.set_ylabel(plot_title)
+        ax3.set_xlabel('time')
 
         self._set_subplots_title_and_plot(ax4, 'epoch', 'cach')
         self._set_subplots_time(ax=ax4, hours=hours, mins=mins)

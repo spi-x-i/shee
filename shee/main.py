@@ -34,6 +34,7 @@ def main():
         print fullname
         if os.path.isfile(fullname) and fn.startswith('dstat'):
             start_time = time.time()
+            print "executing : " + fullname
             if 1 == 0:
                 ######################################
                 #################CPU##################
@@ -43,20 +44,28 @@ def main():
                 if not os.path.exists(dn):
                     os.makedirs(dn)
 
+                cpudir = dn + "/cpu"
+                if not os.path.exists(cpudir):
+                    os.makedirs(cpudir)
+
                 ds.plot_together()
-                ds.subplot_all()
+                ds.subplot_all(True)
                 ds.plot_stacked(columns=['usr', 'sys', 'idl'])
 
                 # TODO: fare qualcosa di meglio qua è doveroso, un while true dove finchè ci sono cpu da leggere si leggono
                 num_cpu = 15
                 for n in np.arange(1,(num_cpu + 1)):
+                    ndir = cpudir + "/cpu" + str(n)
+                    if not os.path.exists(ndir):
+                        os.makedirs(ndir)
+
                     ds = DStatCpu(fullname, "cpu", cpu=n)
                     ds.plot_together()
-                    ds.subplot_all()
+                    ds.subplot_all(True)
                     ds.plot_stacked(columns=['usr', 'sys', 'idl'])
                 ####################################
                 ####################################
-            elif 1 == 0:
+            else:
                 ##########################################
                 #################NETWORK##################
                 ds = DStatNetwork(fullname, "network")
@@ -65,6 +74,10 @@ def main():
                 if not os.path.exists(dn):
                     os.makedirs(dn)
 
+                netdir = dn + "/network"
+                if not os.path.exists(netdir):
+                    os.makedirs(netdir)
+
                 ds.plot_together()
                 ds.subplot_all()
                 ds.plot_stacked(columns=['send','recv'])
@@ -72,27 +85,46 @@ def main():
                 # TODO: fare qualcosa di meglio qua è doveroso, un while true dove finchè ci sono cpu da leggere si leggono
                 num_eth = 1
                 for n in np.arange(0,(num_eth)):
-                    ds = DStatNetwork(fullname, "cpu", eth=n)
+
+                    ndir = netdir + "/eth" + str(n)
+                    if not os.path.exists(ndir):
+                        os.makedirs(ndir)
+
+                    ds = DStatNetwork(fullname, "network", eth=n)
+
                     ds.plot_together()
                     ds.subplot_all()
                     ds.plot_stacked(columns=['send','recv'])
                 ##########################################
                 ##########################################
-            else:
+
+                ##########################################
+                ##################### MEMORY #############
+
                 ds = DStatMemory(fullname, "memory")
 
                 dn = fullname.split('.')[0]
                 if not os.path.exists(dn):
                     os.makedirs(dn)
 
-                ds.plot_together(True)
-                ds.subplot_all(True)
-                ds.plot_stacked(columns=['used','buff','cach','free'], plot=True)
+                memdir = dn + "/memory"
+                if not os.path.exists(memdir):
+                    os.makedirs(memdir)
+
+                ds.plot_together()
+                ds.subplot_all()
+                ds.plot_stacked(columns=['used','buff','cach','free'], plot=False)
                 # qui non c'è l'esigenza di inserire una ricorsione sui vari device, il contatore è unico
-                pass
+
+                ##########################################
+                ############ COMPAIRASON #################
+
+
+
+
 
             print fn + " analysis completed.(Execution time: %s secs" % (time.time() - start_time) + ")"
-            break
+
         else:
             print "%s is not a file" % fn
 
