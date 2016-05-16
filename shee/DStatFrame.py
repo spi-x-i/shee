@@ -17,14 +17,14 @@ class DStatException(Exception):
         return repr(self.value)
 
 
-class OpenCsvException(DStatException):
+class DStatOpenCsvException(DStatException):
     """
     Raised when pandas.read_csv fails
     """
     pass
 
 
-class DateTimeConversionException(DStatException):
+class DStatDateTimeConversionException(DStatException):
     """
     Raised when pandas.to_datetime fails
     """
@@ -37,7 +37,7 @@ class DStatFixColumnsException(DStatException):
     """
     pass
 
-class ReadColumnsException(DStatException):
+class DStatReadColumnsException(DStatException):
     """
     Raised when attempting to read a column that it doesn't exists
     """
@@ -51,13 +51,22 @@ class DStatFrame(object):
             self.df = self._open_csv(filename)
             self.filename = ""
             self.device = None
-            self.name = name
+            if isinstance(name, list):
+                temp = ""
+                for s in name:
+                    for ch in [" ", "/"]:
+                        if ch in s:
+                            s = s.replace(" ", "")
+                    temp += (s + "-")
+                self.name = temp[:-1]
+            else:
+                self.name = name
         except Exception as e:
-            raise OpenCsvException(e.message)
+            raise DStatOpenCsvException(e.message)
         try:
             self._to_datetime()
         except Exception as e:
-            raise DateTimeConversionException(e.message)
+            raise DStatDateTimeConversionException(e.message)
         try:
             self._fix_columns()
         except Exception as e:
@@ -77,7 +86,7 @@ class DStatFrame(object):
             df = self.df[columns]
             return df
         except KeyError as e:
-            raise ReadColumnsException(e.message)
+            raise DStatReadColumnsException(e.message)
 
     def _to_datetime(self):
         """
@@ -151,13 +160,14 @@ class DStatFrame(object):
             self.save(name)
             plt.close()
 
-    def _set_unit(self):
-        if self.name == 'cpu':
+    def _set_unit(self, compare=None):
+        name = compare if compare is not None else self.name
+        if name in ['cpu','total cpu usage']:
             return "percentage"
-        elif self.name == 'network':
+        elif name in ['network','net/total']:
             return "bandwidth [MBps]"
         else:
-            return "memory usage"
+            return "memory usage [MB]"
 
     def _set_layout(self, ax):
         unit = self._set_unit()
@@ -175,7 +185,10 @@ class DStatFrame(object):
         if self.device is not None:
             device_name = 'eth' if self.name == 'network' else self.name
             plot_title = device_name.upper() + str(self.device) + " Usage"
-            save_title = self.name + "-" + device_name + str(self.device) + "-"
+            if self.device == 'comparison':
+                save_title = self.name + "-"
+            else:
+                save_title = self.name + "-" + device_name + str(self.device) + "-"
         else:
             plot_title = "Total " + self.name.upper() + " Usage"
             save_title = "total-" + self.name + "-"
@@ -306,7 +319,7 @@ class DStatMemory(DStatFrame):
         self.filename = sname + '/memory/' + sname.split("/")[-1]
         df = self._read_dataframe(['epoch', 'memory usage'])
         df.columns = df.columns.droplevel()
-        df.ix[: ,df.columns != 'epoch'] = df.ix[:,df.columns != 'epoch'].divide(1024*1024*8)
+        df.ix[:, df.columns != 'epoch'] = df.ix[:, df.columns != 'epoch'].divide(1024*1024*8)
         self.df = df
 
     def subplot_all(self, plot=False):
@@ -348,4 +361,95 @@ class DStatMemory(DStatFrame):
         ax.xaxis.set_minor_locator(mins)
         ax.xaxis.set_major_formatter(mdates.DateFormatter(''))
         ax.xaxis.set_minor_formatter(mdates.DateFormatter('%H:%M'))
+
+
+class DStatCompare(DStatFrame):
+    def __init__(self, filename, columns):
+        super(DStatCompare, self).__init__(filename, columns)
+        sname = filename.split(".")[0] # path completo fino al nome del file meno '.csv' cartella dedicata
+        # setting nome file: la cartella sarà comparison, i nomi dei file saranno le colonne da confrontare
+        self.filename = sname + '/comparison/' + sname.split("/")[-1]
+        self.device = 'comparison'
+        df = self._read_dataframe(['epoch'] + columns)
+        df.columns = df.columns.droplevel()
+        self.df = self._convert(df, ['epoch','usr','sys','idl','hiq','siq'], 1024*1024*8)
+
+    @staticmethod
+    def _convert(df, not_convert, div):
+        cols = df.columns.difference(not_convert)
+        df.ix[:, cols] = df.ix[:, cols].divide(div)
+        return df
+
+    def _select_plot_columns(self, name):
+        if name == 'total cpu usage':
+            return ['usr', 'sys', 'idl', 'wai', 'hiq', 'siq']
+        elif name == 'net/total':
+            return ['send', 'recv']
+        elif name == 'memory usage':
+            return ['used','buff','cach','free']
+
+    def subplot_all(self, cols, plot=False):
+        plot_title, save_title = self._get_titles()
+
+        hours = mdates.HourLocator()  # every year
+        mins = mdates.MinuteLocator()  # every month
+
+        if len(cols) == 2:
+            # row and column sharing
+            ax1 = plt.subplot(211)
+            self._set_subplots_title_and_plot(ax1, 'epoch', self._select_plot_columns(cols[0]), cols[0])
+            self._set_subplots_time(ax=ax1, hours=hours, mins=mins)
+            ax1.set_ylabel(self._set_unit(cols[0]))
+            ax1.grid(True)
+            ax1.legend(loc="upper left", bbox_to_anchor=[1, 1], shadow=True, fancybox=True)
+
+            ax2 = plt.subplot(211)
+            self._set_subplots_title_and_plot(ax2, 'epoch',  self._select_plot_columns(cols[1]), cols[1])
+            self._set_subplots_time(ax=ax2, hours=hours, mins=mins)
+            ax2.set_ylabel(self._set_unit(cols[1]))
+            ax2.set_xlabel('time')
+            ax2.grid(True)
+            ax2.legend(loc="upper left", bbox_to_anchor=[1,1], shadow=True, fancybox=True)
+        else:
+            # fig, (ax1, ax2, ax3) = plt.subplots(3, 1, sharex=True)
+            ax1 = plt.subplot(311)
+            self._set_subplots_title_and_plot(ax1, 'epoch', self._select_plot_columns(cols[0]), cols[0])
+            ax1.grid(True)
+            self._set_subplots_time(ax=ax1, hours=hours, mins=mins)
+            ax1.set_ylabel(self._set_unit(cols[0]))
+            ax1.legend(loc="upper left", bbox_to_anchor=[1,1], shadow=True, fancybox=True)
+
+            ax2 = plt.subplot(312)
+            self._set_subplots_title_and_plot(ax2, 'epoch',  self._select_plot_columns(cols[1]), cols[1])
+            ax2.grid(True)
+            self._set_subplots_time(ax=ax2, hours=hours, mins=mins)
+            ax2.set_ylabel(self._set_unit(cols[1]))
+            ax2.legend(loc="upper left", bbox_to_anchor=[1, 1], shadow=True, fancybox=True)
+
+            ax3 = plt.subplot(313)
+            self._set_subplots_title_and_plot(ax3, 'epoch',  self._select_plot_columns(cols[2]), cols[2])
+            ax3.grid(True)
+            self._set_subplots_time(ax=ax3, hours=hours, mins=mins)
+            ax3.set_ylabel(self._set_unit(cols[2]))
+            ax3.set_xlabel('time')
+            plt.legend(loc="upper left", bbox_to_anchor=[1, 1], shadow=True, fancybox=True)
+
+        if plot:
+            plt.show()
+        else:
+            self.save(save_title + "subplots")
+            plt.close()
+
+    def _set_subplots_title_and_plot(self, ax, xlab, ylab, title):
+        ax.set_title(title)
+        for idx, col in enumerate(self.df[ylab]):
+            plt.plot(self.df[xlab], self.df[col], label=col)
+
+    @staticmethod
+    def _set_subplots_time(ax, hours, mins):
+        ax.xaxis.set_major_locator(hours)
+        ax.xaxis.set_minor_locator(mins)
+        ax.xaxis.set_major_formatter(mdates.DateFormatter(''))
+        ax.xaxis.set_minor_formatter(mdates.DateFormatter('%H:%M'))
+
 

@@ -45,5 +45,10 @@ if __name__ == "__main__":
         license='uncommon',
         packages=['shee'],
         install_requires=install_requires,
+        entry_points={
+          'console_scripts': [
+              'shee = shee.__main__:main'
+          ]
+        },
         zip_safe=False)
 
