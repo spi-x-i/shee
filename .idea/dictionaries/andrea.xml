@@ -3,6 +3,7 @@
     <words>
       <w>apro</w>
       <w>avanti</w>
+      <w>cach</w>
       <w>cartella</w>
       <w>cpudir</w>
       <w>cpunum</w>
@@ -11,13 +12,18 @@
       <w>dstat</w>
       <w>ethnum</w>
       <w>memdir</w>
+      <w>mins</w>
       <w>ndir</w>
       <w>ogni</w>
+      <w>outname</w>
       <w>parsable</w>
       <w>questa</w>
       <w>recv</w>
+      <w>sharex</w>
       <w>shee</w>
       <w>tesi</w>
+      <w>xlab</w>
+      <w>ylab</w>
     </words>
   </dictionary>
 </component>

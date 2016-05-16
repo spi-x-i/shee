@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import numpy as np
-
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
@@ -37,6 +35,7 @@ class DStatFixColumnsException(DStatException):
     """
     pass
 
+
 class DStatReadColumnsException(DStatException):
     """
     Raised when attempting to read a column that it doesn't exists
@@ -57,6 +56,7 @@ class DStatFrame(object):
                     for ch in [" ", "/"]:
                         if ch in s:
                             s = s.replace(" ", "")
+                            s = s.replace("/", "")
                     temp += (s + "-")
                 self.name = temp[:-1]
             else:
@@ -120,11 +120,12 @@ class DStatFrame(object):
     def save(self, suffix):
         outname = self.filename + '-' + suffix + '.png'
         plt.savefig(outname, bbox_inches='tight')
-        print outname + " created"
+        print outname + ' created'
 
     def plot_together(self, plot=False):
         """
         This method plots all value in the second level of the column in one graph, no stacked lines
+        :param plot:
         """
         plot_title, save_title = self._get_titles()
 
@@ -162,15 +163,14 @@ class DStatFrame(object):
 
     def _set_unit(self, compare=None):
         name = compare if compare is not None else self.name
-        if name in ['cpu','total cpu usage']:
+        if name == 'total cpu usage' or name == 'cpu' or name.startswith('cpu'):
             return "percentage"
-        elif name in ['network','net/total']:
+        elif name.startswith('net/') or name == 'network':
             return "bandwidth [MBps]"
         else:
             return "memory usage [MB]"
 
     def _set_layout(self, ax):
-        unit = self._set_unit()
         ax.set_xlabel("time")
         ax.xaxis.grid(True)
         ax.set_ylabel(self._set_unit())
@@ -366,13 +366,13 @@ class DStatMemory(DStatFrame):
 class DStatCompare(DStatFrame):
     def __init__(self, filename, columns):
         super(DStatCompare, self).__init__(filename, columns)
-        sname = filename.split(".")[0] # path completo fino al nome del file meno '.csv' cartella dedicata
+        sname = filename.split(".")[0]  # path completo fino al nome del file meno '.csv' cartella dedicata
         # setting nome file: la cartella sarà comparison, i nomi dei file saranno le colonne da confrontare
         self.filename = sname + '/comparison/' + sname.split("/")[-1]
         self.device = 'comparison'
         df = self._read_dataframe(['epoch'] + columns)
         df.columns = df.columns.droplevel()
-        self.df = self._convert(df, ['epoch','usr','sys','idl','hiq','siq'], 1024*1024*8)
+        self.df = self._convert(df, ['epoch', 'usr', 'sys', 'idl', 'hiq', 'siq'], 1024*1024*8)
 
     @staticmethod
     def _convert(df, not_convert, div):
@@ -380,13 +380,14 @@ class DStatCompare(DStatFrame):
         df.ix[:, cols] = df.ix[:, cols].divide(div)
         return df
 
-    def _select_plot_columns(self, name):
-        if name == 'total cpu usage':
+    @staticmethod
+    def _select_plot_columns(name):
+        if name == 'total cpu usage' or name.startswith('cpu'):
             return ['usr', 'sys', 'idl', 'wai', 'hiq', 'siq']
-        elif name == 'net/total':
+        elif name.startswith('net/'):
             return ['send', 'recv']
         elif name == 'memory usage':
-            return ['used','buff','cach','free']
+            return ['used', 'buff', 'cach', 'free']
 
     def subplot_all(self, cols, plot=False):
         plot_title, save_title = self._get_titles()
@@ -403,21 +404,20 @@ class DStatCompare(DStatFrame):
             ax1.grid(True)
             ax1.legend(loc="upper left", bbox_to_anchor=[1, 1], shadow=True, fancybox=True)
 
-            ax2 = plt.subplot(211)
+            ax2 = plt.subplot(212)
             self._set_subplots_title_and_plot(ax2, 'epoch',  self._select_plot_columns(cols[1]), cols[1])
             self._set_subplots_time(ax=ax2, hours=hours, mins=mins)
             ax2.set_ylabel(self._set_unit(cols[1]))
             ax2.set_xlabel('time')
             ax2.grid(True)
-            ax2.legend(loc="upper left", bbox_to_anchor=[1,1], shadow=True, fancybox=True)
+            ax2.legend(loc="upper left", bbox_to_anchor=[1, 1], shadow=True, fancybox=True)
         else:
-            # fig, (ax1, ax2, ax3) = plt.subplots(3, 1, sharex=True)
             ax1 = plt.subplot(311)
             self._set_subplots_title_and_plot(ax1, 'epoch', self._select_plot_columns(cols[0]), cols[0])
             ax1.grid(True)
             self._set_subplots_time(ax=ax1, hours=hours, mins=mins)
             ax1.set_ylabel(self._set_unit(cols[0]))
-            ax1.legend(loc="upper left", bbox_to_anchor=[1,1], shadow=True, fancybox=True)
+            ax1.legend(loc="upper left", bbox_to_anchor=[1, 1], shadow=True, fancybox=True)
 
             ax2 = plt.subplot(312)
             self._set_subplots_title_and_plot(ax2, 'epoch',  self._select_plot_columns(cols[1]), cols[1])
@@ -432,7 +432,7 @@ class DStatCompare(DStatFrame):
             self._set_subplots_time(ax=ax3, hours=hours, mins=mins)
             ax3.set_ylabel(self._set_unit(cols[2]))
             ax3.set_xlabel('time')
-            plt.legend(loc="upper left", bbox_to_anchor=[1, 1], shadow=True, fancybox=True)
+            ax3.legend(loc="upper left", bbox_to_anchor=[1, 1], shadow=True, fancybox=True)
 
         if plot:
             plt.show()
@@ -451,5 +451,3 @@ class DStatCompare(DStatFrame):
         ax.xaxis.set_minor_locator(mins)
         ax.xaxis.set_major_formatter(mdates.DateFormatter(''))
         ax.xaxis.set_minor_formatter(mdates.DateFormatter('%H:%M'))
-
-
