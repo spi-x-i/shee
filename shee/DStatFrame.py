@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import datetime
+
 import pandas as pd
+
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 
@@ -81,12 +84,49 @@ class DStatFrame(object):
             header=[2, 3],
         )
 
-    def _read_dataframe(self, columns):
+    def _read_dataframe(self, columns, grain):
         try:
             df = self.df[columns]
-            return df
         except KeyError as e:
             raise DStatReadColumnsException(e.message)
+        if grain:
+            df = self._partition_time(df)
+        return df
+
+    @staticmethod
+    def _partition_time(df):
+        start = df['epoch'].iloc[0][0]
+        end = df['epoch'].iloc[-1][0]
+        while True:
+            print "\n"
+            print "Start observation date time: %s" % str(start)
+            print "End observation date time: %s" % str(end)
+            print "Observation interval request (format: %H:%M:%S , e.g. 00:00:00)"
+            new_start = raw_input("    Select a new starting observation time >> ")
+            new_end = raw_input("    Select a new ending observation time >> ")
+            try:
+                final_start = datetime.datetime.strptime(new_start, '%H:%M:%S')
+                final_start = final_start.replace(year=start.date().year, month=start.date().month, day=start.date().day )
+                final_end = datetime.datetime.strptime(new_end, '%H:%M:%S')
+                final_end = final_end.replace(year=end.date().year, month=end.date().month, day=end.date().day )
+            except ValueError as e:
+                print e.message
+                continue
+            # evaluating correctness of time given
+            if (final_start < start):
+                print "Starting time is not a valid time. Try again."
+                continue
+            elif (final_end > end):
+                print "Ending time is not a valid time. Try again."
+                continue
+            elif (final_start > final_end):
+                print "Ending date is prior starting date. Try again."
+            else:
+                # here is possible to partition and return partitioned dataframe
+                ret = df[(df.epoch.epoch > final_start) & (df.epoch.epoch < final_end)]
+                return ret
+
+
 
     def _to_datetime(self):
         """
@@ -155,9 +195,9 @@ class DStatFrame(object):
         if plot:
             plt.show()
         else:
-            name = save_title + 'stacked'
             for col in columns:
-                name += ('-' + col)
+                save_title += (col + '-')
+            name = save_title + 'stacked'
             self.save(name)
             plt.close()
 
@@ -167,6 +207,8 @@ class DStatFrame(object):
             return "percentage"
         elif name.startswith('net/') or name == 'network':
             return "bandwidth [MBps]"
+        elif name.startswith('dsk/') or name == 'disk':
+            return '#count'
         else:
             return "memory usage [MB]"
 
@@ -197,16 +239,16 @@ class DStatFrame(object):
 
 class DStatCpu(DStatFrame):
 
-    def __init__(self, filename, cpu=None):
+    def __init__(self, filename, cpu=None, grain=False):
         super(DStatCpu, self).__init__(filename, 'cpu')
         sname = filename.split(".")[0]
         if cpu is not None:
             self.filename = sname + '/cpu/cpu' + str(cpu) + '/' + sname.split("/")[-1]
-            df = self._read_dataframe(['epoch', 'cpu' + str(cpu) + ' usage'])
+            df = self._read_dataframe(['epoch', 'cpu' + str(cpu) + ' usage'], grain=grain)
             self.device = cpu
         else:
             self.filename = sname + '/cpu/' + sname.split("/")[-1]
-            df = self._read_dataframe(['epoch', 'total cpu usage'])
+            df = self._read_dataframe(['epoch', 'total cpu usage'], grain=grain)
         df.columns = df.columns.droplevel()
         self.df = df
 
@@ -261,16 +303,16 @@ class DStatCpu(DStatFrame):
 
 class DStatNetwork(DStatFrame):
 
-    def __init__(self, filename, eth=None):
+    def __init__(self, filename, eth=None, grain=False):
         super(DStatNetwork, self).__init__(filename, 'network')
         sname = filename.split(".")[0]
         if eth is not None:
             self.filename = sname + '/network/eth' + str(eth) + '/' + sname.split("/")[-1]
-            df = self._read_dataframe(['epoch', 'net/eth' + str(eth)])
+            df = self._read_dataframe(['epoch', 'net/eth' + str(eth)], grain=grain)
             self.device = eth
         else:
             self.filename = sname + '/network/' + sname.split("/")[-1]
-            df = self._read_dataframe(['epoch', 'net/total'])
+            df = self._read_dataframe(['epoch', 'net/total'], grain=grain)
 
         df.columns = df.columns.droplevel()
         df.ix[:, df.columns != 'epoch'] = df.ix[:, df.columns != 'epoch'].divide(1024*1024*8)
@@ -311,15 +353,67 @@ class DStatNetwork(DStatFrame):
         ax.xaxis.set_minor_formatter(mdates.DateFormatter('%H:%M'))
 
 
+class DStatDisk(DStatFrame):
+
+    def __init__(self, filename, disk=None, grain=False):
+        super(DStatDisk, self).__init__(filename, 'disk')
+        sname = filename.split(".")[0]
+        if disk is not None:
+            self.filename = sname + '/disk/sd' + disk + '/' + sname.split("/")[-1]
+            df = self._read_dataframe(['epoch', 'dsk/sd' + disk], grain=grain)
+            self.device = disk
+        else:
+            self.filename = sname + '/disk/' + sname.split("/")[-1]
+            df = self._read_dataframe(['epoch', 'dsk/total'], grain=grain)
+
+        df.columns = df.columns.droplevel()
+        # df.ix[:, df.columns != 'epoch'] = df.ix[:, df.columns != 'epoch'].divide(1024*1024*8)
+        self.df = df
+
+    def subplot_all(self, plot=False):
+        plot_title, save_title = self._get_titles()
+
+        # row and column sharing
+        fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
+
+        hours = mdates.HourLocator()  # every year
+        mins = mdates.MinuteLocator()  # every month
+
+        self._set_subplots_title_and_plot(ax1, 'epoch', 'read')
+        ax1.set_ylabel(plot_title + ' (count)')
+
+        self._set_subplots_title_and_plot(ax2, 'epoch', 'writ')
+        self._set_subplots_time(ax=ax2, hours=hours, mins=mins)
+        ax2.set_ylabel(plot_title + ' (count)')
+        ax2.set_xlabel('time')
+
+        if plot:
+            plt.show()
+        else:
+            self.save(save_title + "subplots")
+            plt.close()
+
+    def _set_subplots_title_and_plot(self, ax, xlab, ylab):
+        ax.set_title(ylab)
+        ax.plot(self.df[xlab], self.df[ylab])
+
+    @staticmethod
+    def _set_subplots_time(ax, hours, mins):
+        ax.xaxis.set_major_locator(hours)
+        ax.xaxis.set_minor_locator(mins)
+        ax.xaxis.set_major_formatter(mdates.DateFormatter(''))
+        ax.xaxis.set_minor_formatter(mdates.DateFormatter('%H:%M'))
+
+
 class DStatMemory(DStatFrame):
 
-    def __init__(self, filename):
+    def __init__(self, filename, grain=False):
         super(DStatMemory, self).__init__(filename, 'memory')
         sname = filename.split(".")[0]
         self.filename = sname + '/memory/' + sname.split("/")[-1]
-        df = self._read_dataframe(['epoch', 'memory usage'])
+        df = self._read_dataframe(['epoch', 'memory usage'], grain=grain)
         df.columns = df.columns.droplevel()
-        df.ix[:, df.columns != 'epoch'] = df.ix[:, df.columns != 'epoch'].divide(1024*1024*8)
+        df.ix[:, df.columns != 'epoch'] = df.ix[:, df.columns != 'epoch'].divide(1024*1024)
         self.df = df
 
     def subplot_all(self, plot=False):
@@ -364,15 +458,15 @@ class DStatMemory(DStatFrame):
 
 
 class DStatCompare(DStatFrame):
-    def __init__(self, filename, columns):
+    def __init__(self, filename, columns, grain=False):
         super(DStatCompare, self).__init__(filename, columns)
         sname = filename.split(".")[0]  # path completo fino al nome del file meno '.csv' cartella dedicata
         # setting nome file: la cartella sarà comparison, i nomi dei file saranno le colonne da confrontare
         self.filename = sname + '/comparison/' + sname.split("/")[-1]
         self.device = 'comparison'
-        df = self._read_dataframe(['epoch'] + columns)
+        df = self._read_dataframe(['epoch'] + columns, grain=grain)
         df.columns = df.columns.droplevel()
-        self.df = self._convert(df, ['epoch', 'usr', 'sys', 'idl', 'hiq', 'siq'], 1024*1024*8)
+        self.df = self._convert(df, ['epoch', 'usr', 'sys', 'idl', 'hiq', 'siq'], 1024*1024)
 
     @staticmethod
     def _convert(df, not_convert, div):
@@ -389,50 +483,60 @@ class DStatCompare(DStatFrame):
         elif name == 'memory usage':
             return ['used', 'buff', 'cach', 'free']
 
-    def subplot_all(self, cols, plot=False):
+    def subplot_all(self, cols, plot=False, grain=False):
         plot_title, save_title = self._get_titles()
 
         hours = mdates.HourLocator()  # every year
         mins = mdates.MinuteLocator()  # every month
+        secs = mdates.SecondLocator()  # every month
 
         if len(cols) == 2:
             # row and column sharing
             ax1 = plt.subplot(211)
             self._set_subplots_title_and_plot(ax1, 'epoch', self._select_plot_columns(cols[0]), cols[0])
-            self._set_subplots_time(ax=ax1, hours=hours, mins=mins)
+            self._set_subplots_time(ax=ax1, hours=hours, mins=mins, secs=secs, grain=grain)
             ax1.set_ylabel(self._set_unit(cols[0]))
+            # plt.setp(ax1.get_xticklabels(), rotation=30, horizontalalignment='right')
+            ax1.xaxis.set_tick_params(which="major", pad=15)
             ax1.grid(True)
             ax1.legend(loc="upper left", bbox_to_anchor=[1, 1], shadow=True, fancybox=True)
 
             ax2 = plt.subplot(212)
             self._set_subplots_title_and_plot(ax2, 'epoch',  self._select_plot_columns(cols[1]), cols[1])
-            self._set_subplots_time(ax=ax2, hours=hours, mins=mins)
+            self._set_subplots_time(ax=ax2, hours=hours, mins=mins, secs=secs, grain=grain)
             ax2.set_ylabel(self._set_unit(cols[1]))
             ax2.set_xlabel('time')
+            # plt.setp(ax2.get_xticklabels(), rotation=30, horizontalalignment='right')
+            ax2.xaxis.set_tick_params(which="major", pad=15)
             ax2.grid(True)
             ax2.legend(loc="upper left", bbox_to_anchor=[1, 1], shadow=True, fancybox=True)
         else:
             ax1 = plt.subplot(311)
             self._set_subplots_title_and_plot(ax1, 'epoch', self._select_plot_columns(cols[0]), cols[0])
             ax1.grid(True)
-            self._set_subplots_time(ax=ax1, hours=hours, mins=mins)
+            self._set_subplots_time(ax=ax1, hours=hours, mins=mins, secs=secs, grain=grain)
             ax1.set_ylabel(self._set_unit(cols[0]))
+            ax1.xaxis.set_tick_params(which="major", pad=15)
             ax1.legend(loc="upper left", bbox_to_anchor=[1, 1], shadow=True, fancybox=True)
 
             ax2 = plt.subplot(312)
             self._set_subplots_title_and_plot(ax2, 'epoch',  self._select_plot_columns(cols[1]), cols[1])
             ax2.grid(True)
-            self._set_subplots_time(ax=ax2, hours=hours, mins=mins)
+            self._set_subplots_time(ax=ax2, hours=hours, mins=mins, secs=secs, grain=grain)
             ax2.set_ylabel(self._set_unit(cols[1]))
+            ax2.xaxis.set_tick_params(which="major", pad=15)
             ax2.legend(loc="upper left", bbox_to_anchor=[1, 1], shadow=True, fancybox=True)
 
             ax3 = plt.subplot(313)
             self._set_subplots_title_and_plot(ax3, 'epoch',  self._select_plot_columns(cols[2]), cols[2])
             ax3.grid(True)
-            self._set_subplots_time(ax=ax3, hours=hours, mins=mins)
+            self._set_subplots_time(ax=ax3, hours=hours, mins=mins, secs=secs, grain=grain)
             ax3.set_ylabel(self._set_unit(cols[2]))
+            ax3.xaxis.set_tick_params(which="major", pad=15)
             ax3.set_xlabel('time')
             ax3.legend(loc="upper left", bbox_to_anchor=[1, 1], shadow=True, fancybox=True)
+
+        plt.gcf().autofmt_xdate()
 
         if plot:
             plt.show()
@@ -446,8 +550,14 @@ class DStatCompare(DStatFrame):
             plt.plot(self.df[xlab], self.df[col], label=col)
 
     @staticmethod
-    def _set_subplots_time(ax, hours, mins):
+    def _set_subplots_time(ax, hours, mins, secs, grain):
         ax.xaxis.set_major_locator(hours)
-        ax.xaxis.set_minor_locator(mins)
-        ax.xaxis.set_major_formatter(mdates.DateFormatter(''))
-        ax.xaxis.set_minor_formatter(mdates.DateFormatter('%H:%M'))
+        if grain:
+            ax.xaxis.set_minor_locator(secs)
+            ax.xaxis.set_minor_formatter(mdates.DateFormatter('%S'))
+            ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+        else:
+            ax.xaxis.set_minor_locator(mins)
+            ax.xaxis.set_minor_formatter(mdates.DateFormatter('%H:%M'))
+            ax.xaxis.set_major_formatter(mdates.DateFormatter(''))
+
