@@ -7,13 +7,15 @@ import time
 
 from page import WebObject
 
-from DStatFrame import DStatCpu
-from DStatFrame import DStatDisk
-from DStatFrame import DStatMemory
-from DStatFrame import DStatNetwork
-from DStatFrame import DStatCompare
+from frames import DStatFrame
+from frames import DStatCpu
+from frames import DStatDisk
+from frames import DStatMemory
+from frames import DStatNetwork
+from frames import DStatCompare
+from frames import DStatAggregate
 
-from DStatFrame import DStatReadColumnsException
+from frames import DStatReadColumnsException
 
 DIR = "/home/andrea/TESI/PYTHON/shee-project/shee/examples"
 
@@ -181,8 +183,31 @@ def comparison_evaluation(fullname, dirname, columns, plot, grain=False):
         exit(-1)
 
 
+def aggregating(input_dir, save=False, file=""):
+
+    dir = input_dir
+    file_list = os.listdir(dir)
+    if file:
+        dagg = DStatAggregate(input_dir, filename=file)
+        dagg.plot_stacked_avg()
+    else:
+        dfs = []
+        for fn in file_list:
+            # from here the path has to be absolute
+            fullname = os.path.join(dir, fn)
+            if evaluate_file(fn, fullname):
+                try:
+                    df = DStatFrame(fullname, fullname.split('.')[0])
+                    dfs.append(df)
+                except DStatReadColumnsException as e:
+                    print "Wrong columns specified. " + e.message
+                    exit(-1)
+        dagg = DStatAggregate(input_dir, dfs, save=save)
+        dagg.plot_stacked_avg()
+
 def shee(input_dir, filename=None, processor=None, eth=None, sd=None, comparison=None, cpu=None, network=None,
-         memory=None, disk=None, plot=False, grain=False, web=False, noparse=False):
+         memory=None, disk=None, plot=False, grain=False, web=False, noparse=False, aggregate=False, save_agg=False,
+         file_agg=None):
     """
 
     :param input_dir: input file directory - if not specified the working directory will be parsed
@@ -328,3 +353,12 @@ def shee(input_dir, filename=None, processor=None, eth=None, sd=None, comparison
     if web:
         web_obj.page()
         exit(0)
+
+    if aggregate:
+        if save_agg:
+            aggregating(input_dir, save=True)
+        elif file_agg is not None:
+            aggregating(input_dir, file=file_agg)
+        else:
+            aggregating(input_dir)
+

@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*
 
 import os
-import json
 
 import webbrowser
+
 
 class WebObject(object):
     def __init__(self):

@@ -1,0 +1,232 @@
+<!DOCTYPE html><html>
+        <head>
+        <style>
+        #myImg {
+            border-radius: 5px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        #myImg:hover {opacity: 0.7;}
+
+        /* The Modal (background) */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 1; /* Sit on top */
+            padding-top: 100px; /* Location of the box */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgb(0,0,0); /* Fallback color */
+            background-color: rgba(0,0,0,0.9); /* Black w/ opacity */
+        }
+
+        /* Modal Content (Image) */
+        .modal-content {
+            margin: auto;
+            display: block;
+            width: 80%;
+            max-width: 700px;
+        }
+
+        /* Caption of Modal Image (Image Text) - Same Width as the Image */
+        #caption {
+            margin: auto;
+            display: block;
+            width: 80%;
+            max-width: 700px;
+            text-align: center;
+            color: #ccc;
+            padding: 10px 0;
+            height: 150px;
+        }
+
+        /* Add Animation - Zoom in the Modal */
+        .modal-content, #caption {
+            -webkit-animation-name: zoom;
+            -webkit-animation-duration: 0.6s;
+            animation-name: zoom;
+            animation-duration: 0.6s;
+        }
+
+        @-webkit-keyframes zoom {
+            from {-webkit-transform:scale(0)}
+            to {-webkit-transform:scale(1)}
+        }
+
+        @keyframes zoom {
+            from {transform:scale(0)}
+            to {transform:scale(1)}
+        }
+
+        /* The Close Button */
+        .close {
+            position: absolute;
+            top: 15px;
+            right: 35px;
+            color: #f1f1f1;
+            font-size: 40px;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: #bbb;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        /* 100% Image Width on Smaller Screens */
+        @media only screen and (max-width: 700px){
+            .modal-content {
+                width: 100%;
+            }
+        }
+
+        #quotescointainer{
+        width: 100%;
+        height: auto;
+        font-size: 12px;
+        overflow: hidden; /* contain floated elements */
+        background: #ccc
+        }
+        #quotes0 {
+            float: left;
+            width: 25%;
+        }
+        #quotes1 {
+            float: left;
+            width: 25%;
+        }
+        #quotes2 {
+            float: left;
+            width: 25%;
+        }
+        #quotes3 {
+            float: left;
+            width: 25%;
+        }
+        img {width:300px; height:auto;}
+        </style>
+        </head>
+        <body>
+        <h1>dstat-shee: a simple Data Visualization Tool</h1>
+        <br>
+        <h3>dstat-hadoop-cloud-32</h3><div id="quotescontainer"><div id="quotes0"><h5>network</h5><img id="myImg0" src="file:///home/andrea/Dropbox/UNIVERSITA/LM/TESI/PYTHON/shee-project/shee/examples/html/../dstat-hadoop-cloud-32/network/dstat-hadoop-cloud-32-total-network-send-recv-stacked.png"></div><div id="quotes1"><h5>disk</h5><img id="myImg1" src="file:///home/andrea/Dropbox/UNIVERSITA/LM/TESI/PYTHON/shee-project/shee/examples/html/../dstat-hadoop-cloud-32/disk/dstat-hadoop-cloud-32-total-disk-read-writ-stacked.png"><br><a href="/home/andrea/Dropbox/UNIVERSITA/LM/TESI/PYTHON/shee-project/shee/examples/html/mainpage-dsk32.html ">go to disks page</a></div><div id="quotes2"><h5>memory</h5><img id="myImg2" src="file:///home/andrea/Dropbox/UNIVERSITA/LM/TESI/PYTHON/shee-project/shee/examples/html/../dstat-hadoop-cloud-32/memory/dstat-hadoop-cloud-32-total-memory-used-buff-cach-free-stacked.png"></div><div id="quotes3"><h5>cpu</h5><img id="myImg3" src="file:///home/andrea/Dropbox/UNIVERSITA/LM/TESI/PYTHON/shee-project/shee/examples/html/../dstat-hadoop-cloud-32/cpu/dstat-hadoop-cloud-32-total-cpu-usr-sys-idl-stacked.png"><br><a href="/home/andrea/Dropbox/UNIVERSITA/LM/TESI/PYTHON/shee-project/shee/examples/html/mainpage-cpu32.html ">go to nodes page</a></div></div><hr style="clear: both;"><h3>dstat-hadoop-cloud-29</h3><div id="quotescontainer"><div id="quotes0"><h5>network</h5><img id="myImg4" src="file:///home/andrea/Dropbox/UNIVERSITA/LM/TESI/PYTHON/shee-project/shee/examples/html/../dstat-hadoop-cloud-29/network/dstat-hadoop-cloud-29-total-network-send-recv-stacked.png"></div><div id="quotes1"><h5>disk</h5><img id="myImg5" src="file:///home/andrea/Dropbox/UNIVERSITA/LM/TESI/PYTHON/shee-project/shee/examples/html/../dstat-hadoop-cloud-29/disk/dstat-hadoop-cloud-29-total-disk-read-writ-stacked.png"><br><a href="/home/andrea/Dropbox/UNIVERSITA/LM/TESI/PYTHON/shee-project/shee/examples/html/mainpage-dsk29.html ">go to disks page</a></div><div id="quotes2"><h5>memory</h5><img id="myImg6" src="file:///home/andrea/Dropbox/UNIVERSITA/LM/TESI/PYTHON/shee-project/shee/examples/html/../dstat-hadoop-cloud-29/memory/dstat-hadoop-cloud-29-total-memory-used-buff-cach-free-stacked.png"></div><div id="quotes3"><h5>cpu</h5><img id="myImg7" src="file:///home/andrea/Dropbox/UNIVERSITA/LM/TESI/PYTHON/shee-project/shee/examples/html/../dstat-hadoop-cloud-29/cpu/dstat-hadoop-cloud-29-total-cpu-usr-sys-idl-stacked.png"><br><a href="/home/andrea/Dropbox/UNIVERSITA/LM/TESI/PYTHON/shee-project/shee/examples/html/mainpage-cpu29.html ">go to nodes page</a></div></div><hr style="clear: both;"><h3>dstat-hadoop-cloud-14</h3><div id="quotescontainer"><div id="quotes0"><h5>network</h5><img id="myImg8" src="file:///home/andrea/Dropbox/UNIVERSITA/LM/TESI/PYTHON/shee-project/shee/examples/html/../dstat-hadoop-cloud-14/network/dstat-hadoop-cloud-14-total-network-send-recv-stacked.png"></div><div id="quotes1"><h5>disk</h5><img id="myImg9" src="file:///home/andrea/Dropbox/UNIVERSITA/LM/TESI/PYTHON/shee-project/shee/examples/html/../dstat-hadoop-cloud-14/disk/dstat-hadoop-cloud-14-total-disk-read-writ-stacked.png"><br><a href="/home/andrea/Dropbox/UNIVERSITA/LM/TESI/PYTHON/shee-project/shee/examples/html/mainpage-dsk14.html ">go to disks page</a></div><div id="quotes2"><h5>memory</h5><img id="myImg10" src="file:///home/andrea/Dropbox/UNIVERSITA/LM/TESI/PYTHON/shee-project/shee/examples/html/../dstat-hadoop-cloud-14/memory/dstat-hadoop-cloud-14-total-memory-used-buff-cach-free-stacked.png"></div><div id="quotes3"><h5>cpu</h5><img id="myImg11" src="file:///home/andrea/Dropbox/UNIVERSITA/LM/TESI/PYTHON/shee-project/shee/examples/html/../dstat-hadoop-cloud-14/cpu/dstat-hadoop-cloud-14-total-cpu-usr-sys-idl-stacked.png"><br><a href="/home/andrea/Dropbox/UNIVERSITA/LM/TESI/PYTHON/shee-project/shee/examples/html/mainpage-cpu14.html ">go to nodes page</a></div></div><hr style="clear: both;">
+        <!-- The Modal -->
+        <div id="myModal" class="modal">
+
+          <!-- The Close Button -->
+          <span class="close" onclick="document.getElementById('myModal').style.display='none'">&times;</span>
+
+          <!-- Modal Content (The Image) -->
+          <img class="modal-content" id="img01">
+
+          <!-- Modal Caption (Image Text) -->
+          <div id="caption"></div>
+        </div>
+        <script>
+        // Get the modal
+        var modal = document.getElementById('myModal');
+
+        // Get the image and insert it inside the modal - use its "alt" text as a caption
+        var modalImg = document.getElementById("img01");
+        var captionText = document.getElementById("caption");
+            var img0 = document.getElementById('myImg0');
+            img0.onclick = function(){
+                modal.style.display = "block";
+                modalImg.src = this.src;
+                modalImg.alt = this.alt;
+                captionText.innerHTML = this.alt;
+            }
+            var img1 = document.getElementById('myImg1');
+            img1.onclick = function(){
+                modal.style.display = "block";
+                modalImg.src = this.src;
+                modalImg.alt = this.alt;
+                captionText.innerHTML = this.alt;
+            }
+            var img2 = document.getElementById('myImg2');
+            img2.onclick = function(){
+                modal.style.display = "block";
+                modalImg.src = this.src;
+                modalImg.alt = this.alt;
+                captionText.innerHTML = this.alt;
+            }
+            var img3 = document.getElementById('myImg3');
+            img3.onclick = function(){
+                modal.style.display = "block";
+                modalImg.src = this.src;
+                modalImg.alt = this.alt;
+                captionText.innerHTML = this.alt;
+            }
+            var img4 = document.getElementById('myImg4');
+            img4.onclick = function(){
+                modal.style.display = "block";
+                modalImg.src = this.src;
+                modalImg.alt = this.alt;
+                captionText.innerHTML = this.alt;
+            }
+            var img5 = document.getElementById('myImg5');
+            img5.onclick = function(){
+                modal.style.display = "block";
+                modalImg.src = this.src;
+                modalImg.alt = this.alt;
+                captionText.innerHTML = this.alt;
+            }
+            var img6 = document.getElementById('myImg6');
+            img6.onclick = function(){
+                modal.style.display = "block";
+                modalImg.src = this.src;
+                modalImg.alt = this.alt;
+                captionText.innerHTML = this.alt;
+            }
+            var img7 = document.getElementById('myImg7');
+            img7.onclick = function(){
+                modal.style.display = "block";
+                modalImg.src = this.src;
+                modalImg.alt = this.alt;
+                captionText.innerHTML = this.alt;
+            }
+            var img8 = document.getElementById('myImg8');
+            img8.onclick = function(){
+                modal.style.display = "block";
+                modalImg.src = this.src;
+                modalImg.alt = this.alt;
+                captionText.innerHTML = this.alt;
+            }
+            var img9 = document.getElementById('myImg9');
+            img9.onclick = function(){
+                modal.style.display = "block";
+                modalImg.src = this.src;
+                modalImg.alt = this.alt;
+                captionText.innerHTML = this.alt;
+            }
+            var img10 = document.getElementById('myImg10');
+            img10.onclick = function(){
+                modal.style.display = "block";
+                modalImg.src = this.src;
+                modalImg.alt = this.alt;
+                captionText.innerHTML = this.alt;
+            }
+            var img11 = document.getElementById('myImg11');
+            img11.onclick = function(){
+                modal.style.display = "block";
+                modalImg.src = this.src;
+                modalImg.alt = this.alt;
+                captionText.innerHTML = this.alt;
+            }
+        // Get the <span> element that closes the modal
+        var span = document.getElementsByClassName("close")[0];
+
+        // When the user clicks on <span> (x), close the modal
+        span.onclick = function() {
+          modal.style.display = "none";
+        }
+        </script>
+        </body>
+        </html>

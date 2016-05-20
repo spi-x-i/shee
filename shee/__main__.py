@@ -9,7 +9,6 @@ import argparse
 
 from shee import shee
 
-
 def main(args=None):
 
     if args is None:
@@ -47,6 +46,10 @@ def main(args=None):
     parser.add_argument("-T", "--time", help="If specified, a time interval will be requested", action="store_true")
     parser.add_argument("-w", "--web", help="If specified, an html page will be rendered", action="store_true")
 
+    parser.add_argument("-a", "--aggregate", help="If specified, aggregated results will be computed", action="store_true")
+    parser.add_argument("-s", "--save_agg", help="Stores a new .csv file with global aggregated results", action="store_true")
+    parser.add_argument("-F", "--file_agg", help="Searches FILE_AGG file in the working directory and computes evaluation", type=str)
+
     args = parser.parse_args()
 
     # arguments validating
@@ -74,12 +77,19 @@ def main(args=None):
     time = args.time
     web = args.web
 
-    if args.noparse and not web:
+    aggregate = args.aggregate
+    save_agg = args.save_agg
+    file_agg = args.file_agg
+
+    if (save_agg or len(file_agg)) and not aggregate:
+        print " %s option allowed only with -a option" % ("-s [--save_agg]" if save_agg else "-F [--file_agg]")
+
+    if (args.noparse) and (not web and not aggregate):
         print " -O [--noparse] option allowed only with -w option"
         exit(-1)
     noparse = args.noparse
 
-    shee(input_dir, filename, processor, eth, sd, comparison, cpu, network, memory, disk, plot, time, web, noparse)
+    shee(input_dir, filename, processor, eth, sd, comparison, cpu, network, memory, disk, plot, time, web, noparse, aggregate, save_agg, file_agg)
 
 if __name__ == "__main__":
     main()
