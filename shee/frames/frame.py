@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import csv
+
 import datetime
 
 import pandas as pd
@@ -77,14 +79,112 @@ class DStatFrame(object):
     def __eq__(self, other):
         return self.df.equals(other)
 
+    def _open_csv(self, filename):
+        ok, to_skip = self._check_csv(filename)
+        if ok:
+            return pd.read_csv(
+                filepath_or_buffer=filename,
+                sep=",",
+                skiprows=to_skip,
+                skip_blank_lines=True,
+                header=[2, 3],
+            )
+        else:
+            df = pd.read_csv(
+                filepath_or_buffer=filename,
+                sep=",",
+                header=None,
+                skiprows=to_skip,
+            )
+            df.columns = pd.MultiIndex.from_tuples(self._compute_default_cols())
+            return df
+
     @staticmethod
-    def _open_csv(filename):
-        return pd.read_csv(
-            filepath_or_buffer=filename,
-            sep=",",
-            skip_blank_lines=True,
-            header=[2, 3],
-        )
+    def _get_iter(iterr):
+        ret = None
+        for x in iterr:
+            try:
+                ret = x[0]
+            except IndexError:
+                ret = None
+            break
+        return ret if ret is not None else ''
+
+    def _check_csv(self, filename):
+        with open(filename, 'rb') as csvfile:
+            ok, skip = self._parse_raw(csvfile)
+            csvfile.close()
+        return ok, skip
+
+    def _parse_raw(self, csvfile):
+        raw = csv.reader(csvfile, delimiter=',')
+        header = False
+        ok_pandas = False
+        skip = []
+        idx = 0
+        while True:
+            try:
+                value = self._get_iter(raw) # the iterator compute next line
+            except StopIteration:
+                return ok_pandas, skip
+            idx += 1
+            if not len(value) and not header:
+                # header is provided
+                header = True
+                ok_pandas = True
+                for _ in range(7):
+                    try:
+                        next(raw)
+                        idx += 1
+                    except StopIteration:
+                        return ok_pandas, skip
+            elif len(value) and not header:
+                header = True
+                pass
+            elif len(value) and header:
+                pass
+            elif not len(value) and header:
+                # header in the middle of the file, need to truncate that lines
+                for _ in range(7):
+                    skip.append(idx-1)
+                    try:
+                        next(raw)
+                        idx += 1
+                    except StopIteration:
+                        return ok_pandas, skip
+
+    @staticmethod
+    def _compute_default_cols():
+        cpus = ['usr','sys', 'idl', 'wai', 'hiq', 'siq']
+        mems = ['used','buff','cach','free']
+        nets = ['send', 'recv']
+        dsk = ['read', 'writ']
+        l = list()
+
+        l.append(('epoch', 'epoch'))
+        for x in range(6):
+            l.append(('total cpu usage', cpus[x]))
+
+        for y in range(15):
+            for x in range(6):
+                l.append(('cpu' + str(y+1) + ' usage', cpus[x]))
+
+        for x in range(4):
+            l.append(('memory usage', mems[x]))
+
+        for x in range(2):
+            l.append(('net/total', nets[x]))
+        for x in range(2):
+            l.append(('net/eth0', nets[x]))
+
+        for x in range(2):
+            l.append(('dsk/total',dsk[x]))
+
+        for y in range(5):
+            for x in range(2):
+                l.append(('dsk/sd' + chr(ord('a') + y), dsk[x]))
+
+        return l
 
     def set_df(self, other):
         self.df = other

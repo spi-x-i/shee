@@ -8,11 +8,13 @@
       <w>cpudir</w>
       <w>cpunum</w>
       <w>cpus</w>
+      <w>csvfile</w>
       <w>dataframe</w>
       <w>dataframes</w>
       <w>dirname</w>
       <w>dstat</w>
       <w>ethnum</w>
+      <w>iterr</w>
       <w>mainpage</w>
       <w>memdir</w>
       <w>memoryusage</w>
