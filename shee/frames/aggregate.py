@@ -42,7 +42,6 @@ class DStatAggregate(object):
             self.filename = input_dir + filename
             self.df = self._read_csv(self.filename)
 
-
         elif dfs is not None:
             dfs = self._filter_dfs(dfs)
             if not len(dfs):
@@ -78,7 +77,8 @@ class DStatAggregate(object):
 
     def to_csv(self):
         """Export dict-like object dataframes in .csv sheets """
-        for k, v in self.df:
+
+        for k, v in self.df.iteritems():
             v.to_csv(self.filename + '_' + k + '.csv', tupleize_cols=False)
 
     def _to_dict(self, df):
