@@ -89,7 +89,8 @@ def main(args=None):
         exit(-1)
     noparse = args.noparse
 
-    shee(input_dir, filename, processor, eth, sd, comparison, cpu, network, memory, disk, plot, time, web, noparse, aggregate, save_agg, file_agg)
+    shee(input_dir, filename, processor, eth, sd, comparison, cpu, network, memory,
+         disk, plot, time, web, noparse, aggregate, save_agg, file_agg)
 
 if __name__ == "__main__":
     main()

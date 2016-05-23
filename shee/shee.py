@@ -383,14 +383,16 @@ def shee(input_dir, filename=None, processor=None, eth=None, sd=None, comparison
 
             else:
                 print "%s is a directory or a not parsable file" % fn
+
+        if aggregate or web:
+            if save_agg:
+                aggregating(input_dir, save=True, plot=plot)
+            elif file_agg is not None:
+                aggregating(input_dir, filename=file_agg, plot=plot)
+            else:
+                aggregating(input_dir, plot=plot)
+
     if web:
         web_obj.page()
         exit(0)
 
-    if aggregate:
-        if save_agg:
-            aggregating(input_dir, save=True, plot=plot)
-        elif file_agg is not None:
-            aggregating(input_dir, filename=file_agg, plot=plot)
-        else:
-            aggregating(input_dir, plot=plot)
