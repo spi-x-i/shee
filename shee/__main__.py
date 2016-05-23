@@ -8,7 +8,7 @@ import warnings
 
 from parse import SheeParser
 
-from shee import shee
+from run import shee
 
 
 def main(args=None):
