@@ -15,6 +15,7 @@ try:
 except ImportError:
     from distutils import setup
 
+
 def check_dependencies():
     install_requires = []
 
@@ -43,7 +44,7 @@ if __name__ == "__main__":
         description='A simple data visualization tool.',
         url='bla',
         license='uncommon',
-        packages=['shee'],
+        packages=['shee', 'shee.frames', 'shee.parse'],
         install_requires=install_requires,
         entry_points={
           'console_scripts': [
