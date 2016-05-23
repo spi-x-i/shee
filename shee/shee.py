@@ -214,6 +214,7 @@ def aggregating_evaluation(dir, save=False, filename="", plot=False):
 
     return dagg.get_date(), dagg.get_nodes_list()
 
+
 def shee(input_dir, filename=None, processor=None, eth=None, sd=None, comparison=None, cpu=None, network=None,
          memory=None, disk=None, plot=False, grain=False, web=False, noparse=False, aggregate=False, save_agg=False,
          file_agg=None):
@@ -238,7 +239,6 @@ def shee(input_dir, filename=None, processor=None, eth=None, sd=None, comparison
     :param file_agg:
     :return:
     """
-
     def evaluate_total_cpu():
         if cpu or web:
             return True

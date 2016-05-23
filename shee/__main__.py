@@ -16,18 +16,16 @@ def main(args=None):
     :param args: void
     :return:
     """
-
     if args is None:
         args = sys.argv[1:]
 
     warnings.filterwarnings("ignore")
-
     # argument parsing
     parser = SheeParser()
     args = parser.get_args()
 
     # arguments validating
-    input_dir = args.input if args.input is not None else os.getcwd()
+    input_dir = os.path.abspath(args.input) if args.input is not None else os.getcwd()
     filename = args.file.split("/")[-1] if args.file is not None else None
     comparison = args.comparison if args.comparison is not None else None
     if comparison is not None :
