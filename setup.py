@@ -22,15 +22,17 @@ def check_dependencies():
     try:
         import numpy
     except ImportError:
-        install_requires.append('numpy')
+        install_requires.append('numpy>=1.11')
     try:
         import matplotlib
     except ImportError:
-        install_requires.append('matplotlib')
+        install_requires.append('matplotlib>=1.5')
     try:
         import pandas
     except ImportError:
-        install_requires.append('pandas')
+        install_requires.append('pandas>=0.18')
+
+    return install_requires
 
 if __name__ == "__main__":
 
