@@ -26,7 +26,7 @@ def check_dependencies():
     try:
         import matplotlib
     except ImportError:
-        install_requires.append('matplotlib>=1.5')
+        install_requires.append('matplotlib>=1.3.1')
     try:
         import pandas
     except ImportError:
