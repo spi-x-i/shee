@@ -9,8 +9,16 @@ import pandas as pd
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 
+from frame import DStatException
 from frame import DStatOpenCsvException
 from frame import DStatReadColumnsException
+
+
+class DStatAggregateNoValidExperiments(DStatException):
+    """
+    Raised when pandas.read_csv fails
+    """
+    pass
 
 
 class DStatAggregate(object):
@@ -34,8 +42,12 @@ class DStatAggregate(object):
             self.filename = input_dir + filename
             self.df = self._read_csv(self.filename)
 
+
         elif dfs is not None:
             dfs = self._filter_dfs(dfs)
+            if not len(dfs):
+                raise DStatAggregateNoValidExperiments('Experiments provided are not intersected; no aggregation is possible.')
+
             dfs = self._select_global(dfs)
             dfs = self._add_multindex(dfs)
 
@@ -48,12 +60,21 @@ class DStatAggregate(object):
 
             self.df = self._to_dict(df)
 
+        self.nodes = self.filename.split('/')[-1].split('.')[0].split('-')[1::2]
         self.date = self.df.itervalues().next().index[0]
         self.outdir = output_dir
 
     def get_dict(self):
         """ getter method """
         return self.df
+
+    def get_date(self):
+        """ get date """
+        return self.date
+
+    def get_nodes_list(self):
+        """ get nodes list """
+        return self.nodes
 
     def to_csv(self):
         """Export dict-like object dataframes in .csv sheets """
@@ -230,15 +251,18 @@ class DStatAggregate(object):
         for outer in dfs:
             found = False
             sout = set(outer.df['epoch', 'epoch'])
-            for inner in dfs:
-                if inner.df.equals(outer.df):
-                    continue
+            if not len(ret):
+                ret.add(outer)
+                continue
+            for inner in ret:
                 sin = set(inner.df['epoch', 'epoch'])
                 if len(sout.intersection(sin)):
                     found = True
                     break
             if found:
                 ret.add(outer)
+
+        print str(len(ret)) + ' nodes found for the experiment %s' % (next(iter(ret)).df['epoch','epoch'][0]).strftime('%Y-%m-%d')
 
         return list(ret)
 

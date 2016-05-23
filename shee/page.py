@@ -48,7 +48,7 @@ class WebObject(object):
     def _get_aggr_name(self, exp=''):
         return self._get_fullname() + '-agg' + str(exp) + '.html'
 
-    def page(self):
+    def page(self, agg_date=None, agg_nodes=[]):
         f = open(self._get_main_name(), 'w')
         d = self.path
 
@@ -177,7 +177,7 @@ class WebObject(object):
         img_counter = 0
         for item in d['children']:  # for each main directory dstat-hadoop-cloud . . .
             if item['type'] == 'directory' and item['name'] == 'aggregation':
-                self._create_aggregation_page(basedir=os.path.join(basedir, item['name']))
+                self._create_aggregation_page(basedir=os.path.join(basedir, item['name']), agg_date=agg_date, nodes=agg_nodes)
             if item['type'] == 'directory' and item['name'] != 'html' and item['name'] != 'aggregation':
                 message += "<h3>" + item['name'] + "</h3>"
                 expdir = os.path.join(basedir, item['name'])
@@ -651,7 +651,7 @@ class WebObject(object):
 
         return
 
-    def _create_aggregation_page(self, basedir, exp=''):
+    def _create_aggregation_page(self, basedir, exp='', agg_date=None, nodes=[]):
         # base directory arriva a ...../cpu
         f = open(self._get_aggr_name(exp), 'w')
         d = self._recursive_set(basedir)
@@ -773,6 +773,12 @@ class WebObject(object):
         '''
         img_counter = 0
         quote_counter = 0
+
+        message += '<h3>Experiment date: %s</h3>' % str(agg_date)
+        message += '<h3>Experiment nodes involved: '
+        for x in nodes:
+            message += str(x) + ', '
+        message += '</h3>'
 
         for item in d['children']:  # stuffs inside aggregation directory
             if item['type'] == 'directory':

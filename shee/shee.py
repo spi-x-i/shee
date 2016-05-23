@@ -182,7 +182,7 @@ def comparison_evaluation(fullname, dirname, columns, plot, grain=False):
         exit(-1)
 
 
-def aggregating(dir, save=False, filename="", plot=False):
+def aggregating_evaluation(dir, save=False, filename="", plot=False):
 
     file_list = os.listdir(dir)
 
@@ -210,8 +210,9 @@ def aggregating(dir, save=False, filename="", plot=False):
         dagg.to_csv()
 
     for k, v in dagg.get_dict().iteritems():
-            dagg.plot_aggr(v, mod=k, plot=plot)
+        dagg.plot_aggr(v, mod=k, plot=plot)
 
+    return dagg.get_date(), dagg.get_nodes_list()
 
 def shee(input_dir, filename=None, processor=None, eth=None, sd=None, comparison=None, cpu=None, network=None,
          memory=None, disk=None, plot=False, grain=False, web=False, noparse=False, aggregate=False, save_agg=False,
@@ -325,7 +326,7 @@ def shee(input_dir, filename=None, processor=None, eth=None, sd=None, comparison
             if not os.path.exists(work_dir + '/html'):
                 os.makedirs(work_dir + '/html')
         else:
-            work_dir = os.getcwd() + '/' + "/".join(input_dir.split('/')[:-1])
+            work_dir = os.getcwd() + '/' + '/'.join(input_dir.split('/'))
             web_obj.set_dirname(work_dir + '/html')
             web_obj.set_pathtree(work_dir)
             if not os.path.exists(work_dir + '/html'):
@@ -384,15 +385,12 @@ def shee(input_dir, filename=None, processor=None, eth=None, sd=None, comparison
             else:
                 print "%s is a directory or a not parsable file" % fn
 
-        if aggregate or web:
-            if save_agg:
-                aggregating(input_dir, save=True, plot=plot)
-            elif file_agg is not None:
-                aggregating(input_dir, filename=file_agg, plot=plot)
-            else:
-                aggregating(input_dir, plot=plot)
+    if aggregate or web:
+        save = save_agg
+        filename = file_agg if file_agg is not None else ''
+        date, nodes = aggregating_evaluation(input_dir, save=save, filename=filename, plot=plot)
 
     if web:
-        web_obj.page()
+        web_obj.page(agg_date = date, agg_nodes=nodes)
         exit(0)
 
