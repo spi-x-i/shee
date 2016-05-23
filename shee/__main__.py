@@ -81,7 +81,7 @@ def main(args=None):
     save_agg = args.save_agg
     file_agg = args.file_agg
 
-    if (save_agg or len(file_agg)) and not aggregate:
+    if (save_agg or file_agg is not None) and not aggregate:
         print " %s option allowed only with -a option" % ("-s [--save_agg]" if save_agg else "-F [--file_agg]")
 
     if (args.noparse) and (not web and not aggregate):

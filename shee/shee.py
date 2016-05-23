@@ -17,8 +17,6 @@ from frames import DStatAggregate
 
 from frames import DStatReadColumnsException
 
-DIR = "/home/andrea/TESI/PYTHON/shee-project/shee/examples"
-
 
 def evaluate_file(filename, fullname):
     return os.path.isfile(fullname) and filename.startswith('dstat') and filename.endswith('.csv')
@@ -169,6 +167,7 @@ def single_disk_evaluation(fullname, dirname, plot, sdnum=None, grain=False):
             except DStatReadColumnsException:
                 break
 
+
 def comparison_evaluation(fullname, dirname, columns, plot, grain=False):
     try:
         ds = DStatCompare(fullname, columns, grain=grain)
@@ -183,13 +182,16 @@ def comparison_evaluation(fullname, dirname, columns, plot, grain=False):
         exit(-1)
 
 
-def aggregating(input_dir, save=False, file=""):
+def aggregating(dir, save=False, filename="", plot=False):
 
-    dir = input_dir
     file_list = os.listdir(dir)
-    if file:
-        dagg = DStatAggregate(input_dir, filename=file)
-        dagg.plot_stacked_avg()
+
+    aggr_dir = dir + '/aggregation'
+    if not os.path.exists(aggr_dir):
+        os.makedirs(aggr_dir)
+
+    if filename:  # a file name is given in input, initialize DStatAggregate object with given filename
+        dfs = None
     else:
         dfs = []
         for fn in file_list:
@@ -202,8 +204,14 @@ def aggregating(input_dir, save=False, file=""):
                 except DStatReadColumnsException as e:
                     print "Wrong columns specified. " + e.message
                     exit(-1)
-        dagg = DStatAggregate(input_dir, dfs, save=save)
-        dagg.plot_stacked_avg()
+    dagg = DStatAggregate(dir, aggr_dir, dfs, filename=filename)
+
+    if save:
+        dagg.to_csv()
+
+    for k, v in dagg.get_dict().iteritems():
+            dagg.plot_aggr(v, mod=k, plot=plot)
+
 
 def shee(input_dir, filename=None, processor=None, eth=None, sd=None, comparison=None, cpu=None, network=None,
          memory=None, disk=None, plot=False, grain=False, web=False, noparse=False, aggregate=False, save_agg=False,
@@ -223,13 +231,20 @@ def shee(input_dir, filename=None, processor=None, eth=None, sd=None, comparison
     :param plot:
     :param grain:
     :param web:
+    :param noparse:
+    :param aggregate:
+    :param save_agg:
+    :param file_agg:
     :return:
     """
 
     def evaluate_total_cpu():
         if cpu or web:
             return True
-        elif not memory and not network and not disk and processor is None and eth is None and sd is None and comparison is None:
+        elif (not memory and not network and
+              not disk and processor is None and
+              eth is None and sd is None and
+              comparison is None):
             return True
         else:
             return False
@@ -237,7 +252,10 @@ def shee(input_dir, filename=None, processor=None, eth=None, sd=None, comparison
     def evaluate_single_cpu():
         if processor is not None or web:
             return True
-        elif not memory and not network and not cpu and not disk and sd is None and eth is None and comparison is None:
+        elif (not memory and not network and
+              not cpu and not disk and
+              sd is None and eth is None and
+              comparison is None):
             return True
         else:
             return False
@@ -245,7 +263,10 @@ def shee(input_dir, filename=None, processor=None, eth=None, sd=None, comparison
     def evaluate_total_network():
         if network or web:
             return True
-        elif not memory and not cpu and not disk and eth is None and processor is None and sd is None and comparison is None:
+        elif (not memory and not cpu and
+              not disk and eth is None and
+              processor is None and sd is None and
+              comparison is None):
             return True
         else:
             return False
@@ -253,7 +274,10 @@ def shee(input_dir, filename=None, processor=None, eth=None, sd=None, comparison
     def evaluate_single_network():
         if eth is not None or web:
             return True
-        elif not memory and not network and not disk and not cpu and sd is None and processor is None and comparison is None:
+        elif (not memory and not network and
+              not disk and not cpu and
+              sd is None and processor is None and
+              comparison is None):
             return True
         else:
             return False
@@ -261,7 +285,10 @@ def shee(input_dir, filename=None, processor=None, eth=None, sd=None, comparison
     def evaluate_total_memory():
         if memory or web:
             return True
-        elif not cpu and not network and not disk and eth is None and processor is None and sd is None and comparison is None:
+        elif (not cpu and not network and
+              not disk and eth is None and
+              processor is None and sd is None and
+              comparison is None):
             return True
         else:
             return False
@@ -269,7 +296,10 @@ def shee(input_dir, filename=None, processor=None, eth=None, sd=None, comparison
     def evaluate_total_disk():
         if disk or web:
             return True
-        elif not memory and not cpu and not network and eth is None and processor is None and sd is None and comparison is None:
+        elif (not memory and not cpu and
+              not network and eth is None and
+              processor is None and sd is None and
+              comparison is None):
             return True
         else:
             return False
@@ -277,7 +307,10 @@ def shee(input_dir, filename=None, processor=None, eth=None, sd=None, comparison
     def evaluate_single_disk():
         if sd is not None or web:
             return True
-        elif not memory and not network and not cpu and not disk and processor is None and eth is None and comparison is None:
+        elif (not memory and not network and
+              not cpu and not disk and
+              processor is None and eth is None and
+              comparison is None):
             return True
         else:
             return False
@@ -292,7 +325,7 @@ def shee(input_dir, filename=None, processor=None, eth=None, sd=None, comparison
             if not os.path.exists(work_dir + '/html'):
                 os.makedirs(work_dir + '/html')
         else:
-            work_dir = os.getcwd() + '/' + input_dir.split('/')[-2]
+            work_dir = os.getcwd() + '/' + "/".join(input_dir.split('/')[:-1])
             web_obj.set_dirname(work_dir + '/html')
             web_obj.set_pathtree(work_dir)
             if not os.path.exists(work_dir + '/html'):
@@ -356,9 +389,8 @@ def shee(input_dir, filename=None, processor=None, eth=None, sd=None, comparison
 
     if aggregate:
         if save_agg:
-            aggregating(input_dir, save=True)
+            aggregating(input_dir, save=True, plot=plot)
         elif file_agg is not None:
-            aggregating(input_dir, file=file_agg)
+            aggregating(input_dir, filename=file_agg, plot=plot)
         else:
-            aggregating(input_dir)
-
+            aggregating(input_dir, plot=plot)

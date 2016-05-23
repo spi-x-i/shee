@@ -8,21 +8,32 @@
       <w>cpudir</w>
       <w>cpunum</w>
       <w>cpus</w>
+      <w>dataframe</w>
+      <w>dataframes</w>
       <w>dirname</w>
       <w>dstat</w>
       <w>ethnum</w>
+      <w>mainpage</w>
       <w>memdir</w>
+      <w>memoryusage</w>
       <w>mins</w>
       <w>multindex</w>
       <w>ndir</w>
+      <w>noparse</w>
       <w>ogni</w>
+      <w>outdir</w>
       <w>outname</w>
       <w>parsable</w>
       <w>questa</w>
       <w>recv</w>
+      <w>sdnum</w>
       <w>sharex</w>
       <w>shee</w>
+      <w>suffixs</w>
       <w>tesi</w>
+      <w>totalcpuusage</w>
+      <w>totcpusage</w>
+      <w>totcpuusage</w>
       <w>xlab</w>
       <w>ylab</w>
     </words>
