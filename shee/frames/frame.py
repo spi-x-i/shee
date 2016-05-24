@@ -52,10 +52,10 @@ class DStatFrame(object):
     def __init__(self, filename, name):
         try:
             self.df = self._open_csv(filename)
-            self.filename = ""
+            self.filename = ''
             self.device = None
             if isinstance(name, list):
-                temp = ""
+                temp = ''
                 for s in name:
                     for ch in [" ", "/"]:
                         if ch in s:
@@ -69,6 +69,7 @@ class DStatFrame(object):
             raise DStatOpenCsvException(e.message)
         try:
             self._to_datetime()
+            self._drop_oversampled()
         except Exception as e:
             raise DStatDateTimeConversionException(e.message)
         try:
@@ -98,6 +99,9 @@ class DStatFrame(object):
             )
             df.columns = pd.MultiIndex.from_tuples(self._compute_default_cols())
             return df
+
+    def _drop_oversampled(self):
+        self.df = self.df.drop_duplicates(subset=('epoch','epoch'), keep='first')
 
     @staticmethod
     def _get_iter(iterr):
@@ -231,8 +235,6 @@ class DStatFrame(object):
                 ret = df[(df.epoch.epoch > final_start) & (df.epoch.epoch < final_end)]
                 return ret
 
-
-
     def _to_datetime(self):
         """
         Method converting unix timestamp Series column to datetime column UTC+1
@@ -240,6 +242,7 @@ class DStatFrame(object):
         """
         # add on hour time (UTC:+1:00)
         self.df['epoch', 'epoch'] += 3600
+        # self.df['epoch', 'epoch'] *= 1000 # that instruction needs unit option equal to 'ms' on below instruction
         self.df['epoch', 'epoch'] = pd.to_datetime(self.df['epoch', 'epoch'], unit='s')
 
     def _fix_columns(self, level=0, to_replace='Unnamed'):

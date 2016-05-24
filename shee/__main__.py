@@ -6,7 +6,7 @@ import os
 import sys
 import warnings
 
-from parse import SheeParser
+from shee.parse import SheeParser
 
 from run import shee
 

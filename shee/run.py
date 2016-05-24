@@ -2,20 +2,18 @@
 # -*- coding: utf-8 -*
 
 import os
-
 import time
 
-from page import WebObject
+from shee.web import WebObject
 
-from frames import DStatFrame
-from frames import DStatCpu
-from frames import DStatDisk
-from frames import DStatMemory
-from frames import DStatNetwork
-from frames import DStatCompare
-from frames import DStatAggregate
-
-from frames import DStatReadColumnsException
+from shee.frames import DStatAggregate
+from shee.frames import DStatCompare
+from shee.frames import DStatCpu
+from shee.frames import DStatDisk
+from shee.frames import DStatFrame
+from shee.frames import DStatMemory
+from shee.frames import DStatNetwork
+from shee.frames import DStatReadColumnsException
 
 
 def evaluate_file(filename, fullname):
@@ -385,12 +383,12 @@ def shee(input_dir, filename=None, processor=None, eth=None, sd=None, comparison
             else:
                 print "%s is a directory or a not parsable file" % fn
 
+    date, nodes = None, None
     if aggregate or web:
         save = save_agg
         filename = file_agg if file_agg is not None else ''
         date, nodes = aggregating_evaluation(input_dir, save=save, filename=filename, plot=plot)
 
     if web:
-        web_obj.page(agg_date = date, agg_nodes=nodes)
+        web_obj.page(agg_date=date, agg_nodes=nodes)
         exit(0)
-

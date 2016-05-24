@@ -47,8 +47,9 @@ class DStatAggregate(object):
             if not len(dfs):
                 raise DStatAggregateNoValidExperiments('Experiments provided are not intersected; no aggregation is possible.')
 
-            dfs = self._select_global(dfs)
-            dfs = self._add_multindex(dfs)
+            for df in dfs:
+                self._select_global(df)
+                self._add_multindex(df)
 
             self.filename = self._set_filename(dfs, input_dir)
 
@@ -79,7 +80,7 @@ class DStatAggregate(object):
         """Export dict-like object dataframes in .csv sheets """
 
         for k, v in self.df.iteritems():
-            v.to_csv(self.filename + '_' + k + '.csv', tupleize_cols=False)
+            v.to_csv(self.filename + '_' + k + '.csv', tupleize_cols=False,) #date_format='%Y-%m-%d %H:%M:%S.%f')
 
     def _to_dict(self, df):
         """
@@ -92,7 +93,7 @@ class DStatAggregate(object):
         :return: dataframe as a dict object keyed by metric
         """
         ret = {}
-
+        print 'Saving dataframe. . .'
         cpu = pd.DataFrame(df.iloc[:, df.columns.get_level_values(1) == 'total cpu usage'], index=df.index)
         cpu = self._compute_df(cpu, 'cpu')
         ret['cpu'] = cpu
@@ -262,40 +263,36 @@ class DStatAggregate(object):
             if found:
                 ret.add(outer)
 
-        print str(len(ret)) + ' nodes found for the experiment %s' % (next(iter(ret)).df['epoch','epoch'][0]).strftime('%Y-%m-%d')
+        print str(len(ret)) + ' nodes found for the experiment %s' % (next(iter(ret)).df['epoch', 'epoch'][0]).strftime('%Y-%m-%d')
 
         return list(ret)
 
     @staticmethod
-    def _select_global(dfs):
+    def _select_global(df):
         """
         Filters input DStat frame objects collecting only needed - global - information.
         :param dfs: list of intersecting DStat frame objects.
         :return: filtered DStat frame objects.
         """
-        for df in dfs:
-            try:
-                new = df.df[['epoch', 'total cpu usage', 'net/total', 'memory usage', 'dsk/total']]  # original df
-            except KeyError as e:
-                raise DStatReadColumnsException(e.message)
-            df.set_df(other=new)
-        return dfs
+        try:
+            new = df.df[['epoch', 'total cpu usage', 'net/total', 'memory usage', 'dsk/total']]  # original df
+        except KeyError as e:
+            raise DStatReadColumnsException(e.message)
+        df.set_df(other=new)
 
     @staticmethod
-    def _add_multindex(dfs):
+    def _add_multindex(df):
         """
         Adds outer column level for each experiment - which matches the name of the experiment
         :param dfs: intersected and filtered DStat frame objects
         :return: list of DStat frame objects
         """
-        for df in dfs:
-            cols = []
-            tmp = df.df.columns.values
-            for idx in range(0, len(tmp)):
-                tmp[idx] = (df.name.split('/')[-1],) + tmp[idx]
-                cols.append(tmp[idx])
-            df.df.columns = pd.MultiIndex.from_tuples(cols)
-        return dfs
+        cols = []
+        tmp = df.df.columns.values
+        for idx in range(0, len(tmp)):
+            tmp[idx] = (df.name.split('/')[-1],) + tmp[idx]
+            cols.append(tmp[idx])
+        df.df.columns = pd.MultiIndex.from_tuples(cols)
 
     @staticmethod
     def _set_filename(dfs, input_dir):
@@ -305,6 +302,7 @@ class DStatAggregate(object):
         :param input_dir: working directory
         :return: self.filename
         """
+        print 'Setting new filenames. . .'
         ret = ""
         for df in dfs:
             ret += '-'.join(df.name.split('-')[-2:])
@@ -318,6 +316,7 @@ class DStatAggregate(object):
         :param dfs: DStat frames objects
         :return: pandas dataframes
         """
+        print 'Setting indexing. . .'
         items = [df.df.set_index(df.df[df.name.split('/')[-1], 'epoch', 'epoch']) for df in dfs]
         for item in items:
             item.index.name = 'epoch'
@@ -330,8 +329,9 @@ class DStatAggregate(object):
         :param dfs: list of dataframes
         :return:
         """
+        print 'Joining Dataframes'
         left_df = self._create_left_df(dfs)
-        left_df = left_df.join(dfs, how='left', rsuffix='_r', lsuffix='_l', )
+        left_df = left_df.join(dfs, how='left', rsuffix='_r', lsuffix='_l')
         return left_df
 
     @staticmethod
@@ -357,6 +357,7 @@ class DStatAggregate(object):
         :param df: joined dataframe
         :return: cleaned joined dataframe
         """
+        print 'Final reshaping'
         tmp = df.columns.values
         cols = []
         for idx in range(0, len(tmp)):

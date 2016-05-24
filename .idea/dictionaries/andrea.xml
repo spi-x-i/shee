@@ -8,12 +8,16 @@
       <w>cpudir</w>
       <w>cpunum</w>
       <w>cpus</w>
+      <w>cpux</w>
       <w>csvfile</w>
       <w>dataframe</w>
       <w>dataframes</w>
+      <w>devicedir</w>
       <w>dirname</w>
       <w>dstat</w>
       <w>ethnum</w>
+      <w>expdir</w>
+      <w>filepath</w>
       <w>iterr</w>
       <w>mainpage</w>
       <w>memdir</w>
@@ -28,10 +32,13 @@
       <w>parsable</w>
       <w>pathtree</w>
       <w>questa</w>
+      <w>quotescontainer</w>
       <w>recv</w>
+      <w>scriptjs</w>
       <w>sdnum</w>
       <w>sharex</w>
       <w>shee</w>
+      <w>subdevice</w>
       <w>suffixs</w>
       <w>tesi</w>
       <w>totalcpuusage</w>
