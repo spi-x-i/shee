@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 
 import matplotlib.dates as mdates
+import matplotlib.ticker as tick
 import matplotlib.pyplot as plt
 
 from frame import DStatException
@@ -127,9 +128,10 @@ class DStatAggregate(object):
             df.ix[:, df.columns] = df.ix[:, df.columns].divide(1024*1024)
             return self._compute_net(df)
         elif mod == 'mem':
-            df.ix[:, df.columns] = df.ix[:, df.columns].divide(1024*1024)
+            df.ix[:, df.columns] = df.ix[:, df.columns].divide(1024*1024*1024)
             return self._compute_mem(df)
         else:  # disk
+            df.ix[:, df.columns] = df.ix[:, df.columns].divide(1000)
             return self._compute_dsk(df)
 
     @staticmethod
@@ -395,10 +397,10 @@ class DStatAggregate(object):
             self._plot_together(df[['avg_send', 'std_send']], 'Network Bandwidth: sent [MBps]', 'net', 'send', plot)
             self._plot_together(df[['avg_recv', 'std_recv']], 'Network Bandwidth: received [MBps]', 'net', 'recv', plot)
         elif mod == 'mem':
-            self._plot_together(df[['avg_used', 'std_used']], 'Memory usage: used [MB]', 'mem', 'used', plot)
-            self._plot_together(df[['avg_free', 'std_free']], 'Memory usage: free [MB]', 'mem', 'free', plot)
-            self._plot_together(df[['avg_buff', 'std_buff']], 'Memory usage: buff [MB]', 'mem', 'buff', plot)
-            self._plot_together(df[['avg_cach', 'std_cach']], 'Memory usage: cach [MB]', 'mem', 'cach', plot)
+            self._plot_together(df[['avg_used', 'std_used']], 'Memory usage: used [GB]', 'mem', 'used', plot)
+            self._plot_together(df[['avg_free', 'std_free']], 'Memory usage: free [GB]', 'mem', 'free', plot)
+            self._plot_together(df[['avg_buff', 'std_buff']], 'Memory usage: buff [GB]', 'mem', 'buff', plot)
+            self._plot_together(df[['avg_cach', 'std_cach']], 'Memory usage: cach [GB]', 'mem', 'cach', plot)
         else:  # disk
             self._plot_together(df[['avg_read', 'std_read']], 'Disk ops: reads', 'dsk', 'read', plot)
             self._plot_together(df[['avg_writ', 'std_writ']], 'Disk ops: writes', 'dsk', 'writ', plot)
@@ -424,12 +426,19 @@ class DStatAggregate(object):
                          alpha=0.2)
 
         self._set_layout(plt.gca(), plot_title, hours, mins, device)
+        self._set_ticks_units(plt.gca(), device)
 
         if plot:
             plt.show()
         else:
             self.save(save_title, device)
             plt.close()
+
+    @staticmethod
+    def _set_ticks_units(ax, device):
+        if device == 'dsk':
+            y_formatter = tick.FormatStrFormatter('%d K')
+            ax.yaxis.set_major_formatter(y_formatter)
 
     def _set_layout(self, ax, ylab, hours, mins, device):
         """

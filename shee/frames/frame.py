@@ -8,7 +8,7 @@ import datetime
 import pandas as pd
 
 import matplotlib.pyplot as plt
-
+import matplotlib.ticker as tick
 
 class DStatException(Exception):
 
@@ -280,12 +280,17 @@ class DStatFrame(object):
         ax = self.df.plot(kind='line', x='epoch', title=plot_title)
 
         self._set_layout(ax)
-
+        self._set_ticks_units(ax)
         if plot:
             plt.show()
         else:
             self.save(save_title + "line")
             plt.close()
+
+    def _set_ticks_units(self, ax):
+        if self.name == 'disk':
+            y_formatter = tick.FormatStrFormatter('%d K')
+            ax.yaxis.set_major_formatter(y_formatter)
 
     def plot_stacked(self, columns=None, plot=False):
         """
@@ -299,6 +304,7 @@ class DStatFrame(object):
         ax = self.df.plot.area(stacked=False, x='epoch', y=columns, title=plot_title)
 
         self._set_layout(ax)
+        self._set_ticks_units(ax)
 
         if plot:
             plt.show()
@@ -314,11 +320,11 @@ class DStatFrame(object):
         if name == 'total cpu usage' or name == 'cpu' or name.startswith('cpu'):
             return "percentage"
         elif name.startswith('net/') or name == 'network':
-            return "bandwidth [MBps]"
+            return "bandwidth [Mbps]"
         elif name.startswith('dsk/') or name == 'disk':
             return '#count'
         else:
-            return "memory usage [MB]"
+            return "memory usage [GB]"
 
     def _set_layout(self, ax):
         ax.set_xlabel("time")

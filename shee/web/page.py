@@ -507,7 +507,7 @@ class WebObject(object):
 
         message += '<h3>Experiment date: %s</h3>' % str(agg_date)
         message += '<h3>Experiment nodes involved: '
-        
+
         nodes.sort()
         for x in nodes:
             message += str(x) + ', '
