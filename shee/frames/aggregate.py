@@ -81,7 +81,7 @@ class DStatAggregate(object):
         """Export dict-like object dataframes in .csv sheets """
 
         for k, v in self.df.iteritems():
-            v.to_csv(self.filename + '_' + k + '.csv', tupleize_cols=False,) #date_format='%Y-%m-%d %H:%M:%S.%f')
+            v.to_csv(self.filename + '_' + k + '.csv', tupleize_cols=False,) # date_format='%Y-%m-%d %H:%M:%S.%f')
 
     def _to_dict(self, df):
         """
