@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import re
 import csv
 
 import datetime
@@ -54,7 +55,21 @@ class DStatFrame(object):
             self.df = self._open_csv(filename)
             self.filename = ''
             self.device = None
-            if isinstance(name, list):
+            self._set_name(name)
+        except Exception as e:
+            raise DStatOpenCsvException(str(type(e)) + ': ' + e.message)
+        try:
+            self._to_datetime()
+            self._drop_oversampled()
+        except Exception as e:
+            raise DStatDateTimeConversionException(str(type(e)) + ': ' + e.message)
+        try:
+            self._fix_columns()
+        except Exception as e:
+            raise DStatFixColumnsException(str(type(e)) + ': ' + e.message)
+
+    def _set_name(self, name):
+        if isinstance(name, list):  # comparison object construction
                 temp = ''
                 for s in name:
                     for ch in [" ", "/"]:
@@ -63,42 +78,22 @@ class DStatFrame(object):
                             s = s.replace("/", "")
                     temp += (s + "-")
                 self.name = temp[:-1]
-            else:
-                self.name = name
-        except Exception as e:
-            raise DStatOpenCsvException(e.message)
-        try:
-            self._to_datetime()
-            self._drop_oversampled()
-        except Exception as e:
-            raise DStatDateTimeConversionException(e.message)
-        try:
-            self._fix_columns()
-        except Exception as e:
-            raise DStatFixColumnsException(e.message)
+        else:
+            self.name = name
 
     def __eq__(self, other):
         return self.df.equals(other)
 
     def _open_csv(self, filename):
-        ok, to_skip = self._check_csv(filename)
-        if ok:
-            return pd.read_csv(
-                filepath_or_buffer=filename,
-                sep=",",
-                skiprows=to_skip,
-                skip_blank_lines=True,
-                header=[2, 3],
-            )
-        else:
-            df = pd.read_csv(
-                filepath_or_buffer=filename,
-                sep=",",
-                header=None,
-                skiprows=to_skip,
-            )
-            df.columns = pd.MultiIndex.from_tuples(self._compute_default_cols())
-            return df
+        header, to_skip = self._check_csv(filename)
+        df = pd.read_csv(
+            filepath_or_buffer=filename,
+            sep=",",
+            skiprows=to_skip,
+            header=header,
+        )
+        # df.columns = pd.MultiIndex.from_tuples(self._compute_default_cols())
+        return df
 
     def _drop_oversampled(self):
         self.df = self.df.drop_duplicates(subset=('epoch','epoch'), keep='first')
@@ -110,52 +105,42 @@ class DStatFrame(object):
             try:
                 ret = x[0]
             except IndexError:
-                ret = None
+                ret = ''
             break
+        if ret is None:
+            raise StopIteration
         return ret if ret is not None else ''
 
     def _check_csv(self, filename):
         with open(filename, 'rb') as csvfile:
+            print filename
             ok, skip = self._parse_raw(csvfile)
             csvfile.close()
         return ok, skip
 
     def _parse_raw(self, csvfile):
         raw = csv.reader(csvfile, delimiter=',')
-        header = False
-        ok_pandas = False
+        header = []
         skip = []
         idx = 0
+        f_idx = 0
         while True:
             try:
-                value = self._get_iter(raw) # the iterator compute next line
-            except StopIteration:
-                return ok_pandas, skip
-            idx += 1
-            if not len(value) and not header:
-                # header is provided
-                header = True
-                ok_pandas = True
-                for _ in range(7):
-                    try:
-                        next(raw)
-                        idx += 1
-                    except StopIteration:
-                        return ok_pandas, skip
-            elif len(value) and not header:
-                header = True
-                pass
-            elif len(value) and header:
-                pass
-            elif not len(value) and header:
-                # header in the middle of the file, need to truncate that lines
-                for _ in range(7):
+                value = self._get_iter(raw)  # the iterator compute next line
+                idx += 1
+                f_idx += 1
+                if value == 'epoch' and not len(header):
+                    # header is provided
+                    header = [f_idx - 1, f_idx]
+                    next(raw)
+                    idx += 1
+                    f_idx += 1
+                    continue
+                elif not len(value) or re.match('^[0-9\.]+$', value) is None:
                     skip.append(idx-1)
-                    try:
-                        next(raw)
-                        idx += 1
-                    except StopIteration:
-                        return ok_pandas, skip
+                    f_idx -= 1
+            except StopIteration:
+                return header, skip
 
     @staticmethod
     def _compute_default_cols():

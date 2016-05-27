@@ -57,7 +57,7 @@ def main(args=None):
         print " %s option allowed only with -a option" % ("-s [--save_agg]" if save_agg else "-F [--file_agg]")
 
     if (args.noparse) and (not web and not aggregate):
-        print " -O [--noparse] option allowed only with -w option"
+        print " -O [--noparse] option allowed only with -w -a options"
         exit(-1)
 
     noparse = args.noparse
