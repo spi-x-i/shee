@@ -314,6 +314,10 @@ def shee(input_dir, filename=None, processor=None, eth=None, sd=None, comparison
         else:
             return False
 
+    if not os.path.exists(input_dir):
+        print "Specified input directory doesn't exists"
+        exit(-1)
+
     web_obj = None
     if web:
         web_obj = WebObject()
@@ -334,6 +338,7 @@ def shee(input_dir, filename=None, processor=None, eth=None, sd=None, comparison
     if not noparse:
         # for each .csv file inside the directory computing the evaluation
         dir = input_dir
+
         file_list = os.listdir(dir)
 
         if filename is not None:  # one filename evaluation
