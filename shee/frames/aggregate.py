@@ -265,6 +265,9 @@ class DStatAggregate(object):
             if found:
                 ret.add(outer)
 
+        if not len(ret):
+            print "Aggregation is not possible; no files founded. Please check input directory."
+            exit(1)
         print str(len(ret)) + ' nodes found for the experiment %s' % (next(iter(ret)).df['epoch', 'epoch'][0]).strftime('%Y-%m-%d')
 
         return list(ret)

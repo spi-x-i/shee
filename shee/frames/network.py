@@ -10,8 +10,13 @@ import matplotlib.dates as mdates
 
 class DStatNetwork(DStatFrame):
 
-    def __init__(self, filename, eth=None, grain=False):
-        super(DStatNetwork, self).__init__(filename, 'network')
+    def __init__(self, filename, frame=None, eth=None, grain=False):
+        if frame is not None:
+            self.df = frame.df
+            self.device = frame.device
+            self._set_name('network')
+        else:
+            super(DStatNetwork, self).__init__(filename, 'network')
         sname = filename.split(".")[0]
         if eth is not None:
             self.filename = sname + '/network/eth' + str(eth) + '/' + sname.split("/")[-1]

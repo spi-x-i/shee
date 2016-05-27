@@ -9,8 +9,13 @@ import matplotlib.ticker as tick
 
 class DStatDisk(DStatFrame):
 
-    def __init__(self, filename, disk=None, grain=False):
-        super(DStatDisk, self).__init__(filename, 'disk')
+    def __init__(self, filename, frame=None, disk=None, grain=False):
+        if frame is not None:
+            self.df = frame.df
+            self.device = frame.device
+            self._set_name('disk')
+        else:
+            super(DStatDisk, self).__init__(filename, 'disk')
         sname = filename.split(".")[0]
         if disk is not None:
             self.filename = sname + '/disk/sd' + disk + '/' + sname.split("/")[-1]

@@ -9,8 +9,13 @@ import matplotlib.dates as mdates
 
 class DStatCpu(DStatFrame):
 
-    def __init__(self, filename, cpu=None, grain=False):
-        super(DStatCpu, self).__init__(filename, 'cpu')
+    def __init__(self, filename, frame=None, cpu=None, grain=False):
+        if frame is not None:
+            self.df = frame.df
+            self.device = frame.device
+            self._set_name('cpu')
+        else:
+            super(DStatCpu, self).__init__(filename, 'cpu')
         sname = filename.split(".")[0]
         if cpu is not None:
             self.filename = sname + '/cpu/cpu' + str(cpu) + '/' + sname.split("/")[-1]

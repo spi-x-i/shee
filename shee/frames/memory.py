@@ -10,8 +10,13 @@ import matplotlib.dates as mdates
 
 class DStatMemory(DStatFrame):
 
-    def __init__(self, filename, grain=False):
-        super(DStatMemory, self).__init__(filename, 'memory')
+    def __init__(self, filename, frame=None, grain=False):
+        if frame is not None:
+            self.df = frame.df
+            self.device = frame.device
+            self._set_name('memory')
+        else:
+            super(DStatMemory, self).__init__(filename, 'memory')
         sname = filename.split(".")[0]
         self.filename = sname + '/memory/' + sname.split("/")[-1]
         df = self._read_dataframe(['epoch', 'memory usage'], grain=grain)

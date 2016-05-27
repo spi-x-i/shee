@@ -8,8 +8,13 @@ import matplotlib.dates as mdates
 
 
 class DStatCompare(DStatFrame):
-    def __init__(self, filename, columns, grain=False):
-        super(DStatCompare, self).__init__(filename, columns)
+    def __init__(self, filename, columns, frame=None, grain=False):
+        if frame is not None:
+            self.df = frame.df
+            self.device = frame.device
+            self._set_name(columns)
+        else:
+            super(DStatCompare, self).__init__(filename, columns)
         sname = filename.split(".")[0]  # path completo fino al nome del file meno '.csv' cartella dedicata
         # setting nome file: la cartella sarà comparison, i nomi dei file saranno le colonne da confrontare
         self.filename = sname + '/comparison/' + sname.split("/")[-1]
