@@ -1,15 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import re
 import csv
+
 import datetime
 
 import pandas as pd
 
 import matplotlib.pyplot as plt
 import matplotlib.ticker as tick
-
 
 class DStatException(Exception):
 
@@ -72,7 +71,7 @@ class DStatFrame(object):
             self._to_datetime()
             self._drop_oversampled()
         except Exception as e:
-            raise DStatDateTimeConversionException(str(type(e)) + ': ' + e.message)
+            raise DStatDateTimeConversionException(e.message)
         try:
             self._fix_columns()
         except Exception as e:
@@ -82,18 +81,27 @@ class DStatFrame(object):
         return self.df.equals(other)
 
     def _open_csv(self, filename):
-        to_skip = self._check_csv(filename)
-        df = pd.read_csv(
-            filepath_or_buffer=filename,
-            sep=",",
-            header=None,
-            skiprows=to_skip,
-        )
-        df.columns = pd.MultiIndex.from_tuples(self._compute_default_cols())
-        return df
+        ok, to_skip = self._check_csv(filename)
+        if ok:
+            return pd.read_csv(
+                filepath_or_buffer=filename,
+                sep=",",
+                skiprows=to_skip,
+                skip_blank_lines=True,
+                header=[2, 3],
+            )
+        else:
+            df = pd.read_csv(
+                filepath_or_buffer=filename,
+                sep=",",
+                header=None,
+                skiprows=to_skip,
+            )
+            df.columns = pd.MultiIndex.from_tuples(self._compute_default_cols())
+            return df
 
     def _drop_oversampled(self):
-        self.df = self.df.drop_duplicates(subset=('epoch', 'epoch'), keep='first')
+        self.df = self.df.drop_duplicates(subset=('epoch','epoch'), keep='first')
 
     @staticmethod
     def _get_iter(iterr):
@@ -102,35 +110,57 @@ class DStatFrame(object):
             try:
                 ret = x[0]
             except IndexError:
-                ret = ''
+                ret = None
             break
-        if ret is None:
-            raise StopIteration
-        return ret
+        return ret if ret is not None else ''
 
     def _check_csv(self, filename):
         with open(filename, 'rb') as csvfile:
-            skip = self._parse_raw(csvfile)
+            ok, skip = self._parse_raw(csvfile)
             csvfile.close()
-        return skip
+        return ok, skip
 
     def _parse_raw(self, csvfile):
         raw = csv.reader(csvfile, delimiter=',')
+        header = False
+        ok_pandas = False
         skip = []
         idx = 0
         while True:
             try:
-                value = self._get_iter(raw)  # the iterator compute next line
-                idx += 1
-                if not len(value) or re.match('^[0-9\.]+$', value) is None:
-                    skip.append(idx-1)
+                value = self._get_iter(raw) # the iterator compute next line
             except StopIteration:
-                return skip
+                return ok_pandas, skip
+            idx += 1
+            if not len(value) and not header:
+                # header is provided
+                header = True
+                ok_pandas = True
+                for _ in range(7):
+                    try:
+                        next(raw)
+                        idx += 1
+                    except StopIteration:
+                        return ok_pandas, skip
+            elif len(value) and not header:
+                header = True
+                pass
+            elif len(value) and header:
+                pass
+            elif not len(value) and header:
+                # header in the middle of the file, need to truncate that lines
+                for _ in range(7):
+                    skip.append(idx-1)
+                    try:
+                        next(raw)
+                        idx += 1
+                    except StopIteration:
+                        return ok_pandas, skip
 
     @staticmethod
     def _compute_default_cols():
-        cpus = ['usr', 'sys', 'idl', 'wai', 'hiq', 'siq']
-        mems = ['used', 'buff', 'cach', 'free']
+        cpus = ['usr','sys', 'idl', 'wai', 'hiq', 'siq']
+        mems = ['used','buff','cach','free']
         nets = ['send', 'recv']
         dsk = ['read', 'writ']
         l = list()
@@ -152,7 +182,7 @@ class DStatFrame(object):
             l.append(('net/eth0', nets[x]))
 
         for x in range(2):
-            l.append(('dsk/total', dsk[x]))
+            l.append(('dsk/total',dsk[x]))
 
         for y in range(5):
             for x in range(2):
@@ -185,20 +215,20 @@ class DStatFrame(object):
             new_end = raw_input("    Select a new ending observation time >> ")
             try:
                 final_start = datetime.datetime.strptime(new_start, '%H:%M:%S')
-                final_start = final_start.replace(year=start.date().year, month=start.date().month, day=start.date().day)
+                final_start = final_start.replace(year=start.date().year, month=start.date().month, day=start.date().day )
                 final_end = datetime.datetime.strptime(new_end, '%H:%M:%S')
-                final_end = final_end.replace(year=end.date().year, month=end.date().month, day=end.date().day)
+                final_end = final_end.replace(year=end.date().year, month=end.date().month, day=end.date().day )
             except ValueError as e:
                 print e.message
                 continue
-            # evaluating time given rightness
-            if final_start < start:
+            # evaluating correctness of time given
+            if (final_start < start):
                 print "Starting time is not a valid time. Try again."
                 continue
-            elif final_end > end:
+            elif (final_end > end):
                 print "Ending time is not a valid time. Try again."
                 continue
-            elif final_start > final_end:
+            elif (final_start > final_end):
                 print "Ending date is prior starting date. Try again."
             else:
                 # here is possible to partition and return partitioned dataframe
