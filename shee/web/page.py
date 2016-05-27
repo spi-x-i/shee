@@ -358,7 +358,7 @@ class WebObject(object):
                     basedir=os.path.join(basedir, item['name']),
                     agg_date=agg_date,
                     nodes=agg_nodes)
-            if item['type'] == 'directory' and item['name'] != 'html' and item['name'] != 'aggregation':
+            elif item['type'] == 'directory' and item['name'].startswith('dstat'):
                 message += '<h3>' + item['name'] + '</h3>'
                 expdir = os.path.join(basedir, item['name'])
                 message += '<div id="quotescontainer">'
