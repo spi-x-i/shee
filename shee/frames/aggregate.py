@@ -131,7 +131,7 @@ class DStatAggregate(object):
             df.ix[:, df.columns] = df.ix[:, df.columns].divide(1024*1024*1024)
             return self._compute_mem(df)
         else:  # disk
-            df.ix[:, df.columns] = df.ix[:, df.columns].divide(1000)
+            df.ix[:, df.columns] = df.ix[:, df.columns].divide(1024*1024)
             return self._compute_dsk(df)
 
     @staticmethod
@@ -405,8 +405,8 @@ class DStatAggregate(object):
             self._plot_together(df[['avg_buff', 'std_buff']], 'Memory usage: buff [GB]', 'mem', 'buff', plot)
             self._plot_together(df[['avg_cach', 'std_cach']], 'Memory usage: cach [GB]', 'mem', 'cach', plot)
         else:  # disk
-            self._plot_together(df[['avg_read', 'std_read']], 'Disk ops: reads', 'dsk', 'read', plot)
-            self._plot_together(df[['avg_writ', 'std_writ']], 'Disk ops: writes', 'dsk', 'writ', plot)
+            self._plot_together(df[['avg_read', 'std_read']], 'Disk Volume: read [MB]', 'dsk', 'read', plot)
+            self._plot_together(df[['avg_writ', 'std_writ']], 'Disk volume: write [MB]', 'dsk', 'writ', plot)
 
     def _plot_together(self, df, plot_title, device, metric, plot=False):
         """
@@ -440,7 +440,7 @@ class DStatAggregate(object):
     @staticmethod
     def _set_ticks_units(ax, device):
         if device == 'dsk':
-            y_formatter = tick.FormatStrFormatter('%d K')
+            y_formatter = tick.FormatStrFormatter('%1.2f MB')
             ax.yaxis.set_major_formatter(y_formatter)
 
     def _set_layout(self, ax, ylab, hours, mins, device):

@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import matplotlib.ticker as tick
 
+
 class DStatDisk(DStatFrame):
 
     def __init__(self, filename, frame=None, disk=None, grain=False):
@@ -26,7 +27,7 @@ class DStatDisk(DStatFrame):
             df = self._read_dataframe(['epoch', 'dsk/total'], grain=grain)
 
         df.columns = df.columns.droplevel()
-        df.ix[:, df.columns != 'epoch'] = df.ix[:, df.columns != 'epoch'].divide(1000)
+        df.ix[:, df.columns != 'epoch'] = df.ix[:, df.columns != 'epoch'].divide(1024*1024)
         self.df = df
 
     def subplot_all(self, plot=False):
@@ -38,21 +39,20 @@ class DStatDisk(DStatFrame):
         hours = mdates.HourLocator()  # every year
         mins = mdates.MinuteLocator()  # every month
 
-        y_formatter = tick.FormatStrFormatter('%d K')
+        y_formatter = tick.FormatStrFormatter('%1.2f MB')
 
         self._set_subplots_title_and_plot(ax1, 'epoch', 'read')
-        ax1.set_ylabel(plot_title + ' (count)')
+        ax1.set_ylabel(plot_title + ' [MB]')
         ax1.yaxis.set_major_formatter(y_formatter)
 
         self._set_subplots_title_and_plot(ax2, 'epoch', 'writ')
         self._set_subplots_time(ax=ax2, hours=hours, mins=mins)
 
         ax2.yaxis.set_major_formatter(y_formatter)
-        ax2.set_ylabel(plot_title + ' (count)')
+        ax2.set_ylabel(plot_title + ' [MB]')
         ax2.set_xlabel('time')
 
         self._rotating_xticks_and_grid([ax1, ax2])
-
 
         plt.tight_layout(pad=1, w_pad=1, h_pad=1)
         if plot:
