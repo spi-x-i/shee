@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 
 
-
 class DStatMemory(DStatFrame):
 
     def __init__(self, filename, frame=None, grain=False):
