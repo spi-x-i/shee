@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from frame import DStatFrame
+from shee.util import get_result_dir_name
 
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
@@ -17,7 +18,7 @@ class DStatDisk(DStatFrame):
             self._set_name('disk')
         else:
             super(DStatDisk, self).__init__(filename, 'disk')
-        sname = filename.split(".")[0]
+        sname = get_result_dir_name(filename)
         if disk is not None:
             self.filename = sname + '/disk/sd' + disk + '/' + sname.split("/")[-1]
             df = self._read_dataframe(['epoch', 'dsk/sd' + disk], grain=grain)

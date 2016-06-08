@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 
 from frame import DStatFrame
+from shee.util import get_result_dir_name
 
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
-
 
 
 class DStatNetwork(DStatFrame):
@@ -17,7 +17,7 @@ class DStatNetwork(DStatFrame):
             self._set_name('network')
         else:
             super(DStatNetwork, self).__init__(filename, 'network')
-        sname = filename.split(".")[0]
+        sname = get_result_dir_name(filename)
         if eth is not None:
             self.filename = sname + '/network/eth' + str(eth) + '/' + sname.split("/")[-1]
             df = self._read_dataframe(['epoch', 'net/eth' + str(eth)], grain=grain)

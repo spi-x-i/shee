@@ -5,6 +5,7 @@ import os
 import time
 
 from shee.web import WebObject
+from shee.util import get_result_dir_name
 
 from shee.frames import DStatAggregate
 from shee.frames import DStatCompare
@@ -197,7 +198,7 @@ def aggregating_evaluation(dir, save=False, filename="", plot=False):
             fullname = os.path.join(dir, fn)
             if evaluate_file(fn, fullname):
                 try:
-                    df = DStatFrame(fullname, fullname.split('.')[0])
+                    df = DStatFrame(fullname, get_result_dir_name(fullname))
                     dfs.append(df)
                 except DStatReadColumnsException as e:
                     print "Wrong columns specified. " + e.message
@@ -340,7 +341,12 @@ def shee(input_dir, filename=None, processor=None, eth=None, sd=None, comparison
                 print "Evaluating : " + fullname
 
                 # create results directory
-                dn = fullname.split('.')[0]
+                # dn = fullname.split('.')[0]
+                # if not os.path.exists(dn):
+                #     os.makedirs(dn)
+
+                # get result allows also dotted absolute paths
+                dn = get_result_dir_name(fullname)
                 if not os.path.exists(dn):
                     os.makedirs(dn)
 

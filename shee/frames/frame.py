@@ -91,6 +91,8 @@ class DStatFrame(object):
             sep=",",
             skiprows=to_skip,
             header=header,
+            error_bad_lines=False,
+            warn_bad_lines=False,
         )
         # df.columns = pd.MultiIndex.from_tuples(self._compute_default_cols())
         return df
@@ -119,6 +121,12 @@ class DStatFrame(object):
         return ok, skip
 
     def _parse_raw(self, csvfile):
+        """
+        Two index identifiers are needed due to pandas.csv_read method
+        f_idx points to rows that set columns
+        idx points to line to be skipped
+        pandas.read_csv method get a two steps parsing, first skip lines and then analyze file
+        """
         raw = csv.reader(csvfile, delimiter=',')
         header = []
         skip = []
@@ -274,7 +282,7 @@ class DStatFrame(object):
 
     def _set_ticks_units(self, ax):
         if self.name == 'disk':
-            y_formatter = tick.FormatStrFormatter('%d K')
+            y_formatter = tick.FormatStrFormatter('%1.2f MB')
             ax.yaxis.set_major_formatter(y_formatter)
 
     def plot_stacked(self, columns=None, plot=False):
@@ -307,7 +315,7 @@ class DStatFrame(object):
         elif name.startswith('net/') or name == 'network':
             return "bandwidth [Mbps]"
         elif name.startswith('dsk/') or name == 'disk':
-            return '#count'
+            return 'disk volume usage [MB]'
         else:
             return "memory usage [GB]"
 

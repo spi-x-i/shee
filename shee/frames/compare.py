@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from frame import DStatFrame
+from shee.util import get_result_dir_name
 
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
@@ -15,7 +16,7 @@ class DStatCompare(DStatFrame):
             self._set_name(columns)
         else:
             super(DStatCompare, self).__init__(filename, columns)
-        sname = filename.split(".")[0]  # complete path will ends with the name of the csv file
+        sname = get_result_dir_name(filename)  # complete path will ends with the name of the csv file
         # setting file name: directory: comparison, filename from columns names
         self.filename = sname + '/comparison/' + sname.split("/")[-1]
         self.device = 'comparison'

@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from frame import DStatFrame
+from shee.util import get_result_dir_name
 
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
@@ -16,7 +17,7 @@ class DStatCpu(DStatFrame):
             self._set_name('cpu')
         else:
             super(DStatCpu, self).__init__(filename, 'cpu')
-        sname = filename.split(".")[0]
+        sname = get_result_dir_name(filename)
         if cpu is not None:
             self.filename = sname + '/cpu/cpu' + str(cpu) + '/' + sname.split("/")[-1]
             df = self._read_dataframe(['epoch', 'cpu' + str(cpu) + ' usage'], grain=grain)

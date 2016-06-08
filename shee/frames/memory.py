@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from frame import DStatFrame
+from shee.util import get_result_dir_name
 
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
@@ -16,7 +17,7 @@ class DStatMemory(DStatFrame):
             self._set_name('memory')
         else:
             super(DStatMemory, self).__init__(filename, 'memory')
-        sname = filename.split(".")[0]
+        sname = get_result_dir_name(filename)
         self.filename = sname + '/memory/' + sname.split("/")[-1]
         df = self._read_dataframe(['epoch', 'memory usage'], grain=grain)
         df.columns = df.columns.droplevel()
