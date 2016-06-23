@@ -1,12 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import re
+import csv
+
 import datetime
 
 import pandas as pd
 
 import matplotlib.pyplot as plt
-
+import matplotlib.ticker as tick
 
 class DStatException(Exception):
 
@@ -50,10 +53,24 @@ class DStatFrame(object):
     def __init__(self, filename, name):
         try:
             self.df = self._open_csv(filename)
-            self.filename = ""
+            self.filename = ''
             self.device = None
-            if isinstance(name, list):
-                temp = ""
+            self._set_name(name)
+        except Exception as e:
+            raise DStatOpenCsvException(str(type(e)) + ': ' + e.message)
+        try:
+            self._to_datetime()
+            self._drop_oversampled()
+        except Exception as e:
+            raise DStatDateTimeConversionException(str(type(e)) + ': ' + e.message)
+        try:
+            self._fix_columns()
+        except Exception as e:
+            raise DStatFixColumnsException(str(type(e)) + ': ' + e.message)
+
+    def _set_name(self, name):
+        if isinstance(name, list):  # comparison object construction
+                temp = ''
                 for s in name:
                     for ch in [" ", "/"]:
                         if ch in s:
@@ -61,30 +78,110 @@ class DStatFrame(object):
                             s = s.replace("/", "")
                     temp += (s + "-")
                 self.name = temp[:-1]
-            else:
-                self.name = name
-        except Exception as e:
-            raise DStatOpenCsvException(e.message)
-        try:
-            self._to_datetime()
-        except Exception as e:
-            raise DStatDateTimeConversionException(e.message)
-        try:
-            self._fix_columns()
-        except Exception as e:
-            raise DStatFixColumnsException(e.message)
+        else:
+            self.name = name
 
     def __eq__(self, other):
         return self.df.equals(other)
 
-    @staticmethod
-    def _open_csv(filename):
-        return pd.read_csv(
+    def _open_csv(self, filename):
+        header, to_skip = self._check_csv(filename)
+        df = pd.read_csv(
             filepath_or_buffer=filename,
             sep=",",
-            skip_blank_lines=True,
-            header=[2, 3],
+            skiprows=to_skip,
+            header=header,
+            error_bad_lines=False,
+            warn_bad_lines=False,
         )
+        # df.columns = pd.MultiIndex.from_tuples(self._compute_default_cols())
+        return df
+
+    def _drop_oversampled(self):
+        self.df = self.df.drop_duplicates(subset=('epoch','epoch'), keep='first')
+
+    @staticmethod
+    def _get_iter(iterr):
+        ret = None
+        for x in iterr:
+            try:
+                ret = x[0]
+            except IndexError:
+                ret = ''
+            break
+        if ret is None:
+            raise StopIteration
+        return ret if ret is not None else ''
+
+    def _check_csv(self, filename):
+        with open(filename, 'rb') as csvfile:
+            print filename
+            ok, skip = self._parse_raw(csvfile)
+            csvfile.close()
+        return ok, skip
+
+    def _parse_raw(self, csvfile):
+        """
+        Two index identifiers are needed due to pandas.csv_read method
+        f_idx points to rows that set columns
+        idx points to line to be skipped
+        pandas.read_csv method get a two steps parsing, first skip lines and then analyze file
+        """
+        raw = csv.reader(csvfile, delimiter=',')
+        header = []
+        skip = []
+        idx = 0
+        f_idx = 0
+        while True:
+            try:
+                value = self._get_iter(raw)  # the iterator compute next line
+                idx += 1
+                f_idx += 1
+                if value == 'epoch' and not len(header):
+                    # header is provided
+                    header = [f_idx - 1, f_idx]
+                    next(raw)
+                    idx += 1
+                    f_idx += 1
+                    continue
+                elif not len(value) or re.match('^[0-9\.]+$', value) is None:
+                    skip.append(idx-1)
+                    f_idx -= 1
+            except StopIteration:
+                return header, skip
+
+    @staticmethod
+    def _compute_default_cols():
+        cpus = ['usr','sys', 'idl', 'wai', 'hiq', 'siq']
+        mems = ['used','buff','cach','free']
+        nets = ['send', 'recv']
+        dsk = ['read', 'writ']
+        l = list()
+
+        l.append(('epoch', 'epoch'))
+        for x in range(6):
+            l.append(('total cpu usage', cpus[x]))
+
+        for y in range(15):
+            for x in range(6):
+                l.append(('cpu' + str(y+1) + ' usage', cpus[x]))
+
+        for x in range(4):
+            l.append(('memory usage', mems[x]))
+
+        for x in range(2):
+            l.append(('net/total', nets[x]))
+        for x in range(2):
+            l.append(('net/eth0', nets[x]))
+
+        for x in range(2):
+            l.append(('dsk/total',dsk[x]))
+
+        for y in range(5):
+            for x in range(2):
+                l.append(('dsk/sd' + chr(ord('a') + y), dsk[x]))
+
+        return l
 
     def set_df(self, other):
         self.df = other
@@ -131,8 +228,6 @@ class DStatFrame(object):
                 ret = df[(df.epoch.epoch > final_start) & (df.epoch.epoch < final_end)]
                 return ret
 
-
-
     def _to_datetime(self):
         """
         Method converting unix timestamp Series column to datetime column UTC+1
@@ -140,6 +235,7 @@ class DStatFrame(object):
         """
         # add on hour time (UTC:+1:00)
         self.df['epoch', 'epoch'] += 3600
+        # self.df['epoch', 'epoch'] *= 1000 # that instruction needs unit option equal to 'ms' on below instruction
         self.df['epoch', 'epoch'] = pd.to_datetime(self.df['epoch', 'epoch'], unit='s')
 
     def _fix_columns(self, level=0, to_replace='Unnamed'):
@@ -177,12 +273,17 @@ class DStatFrame(object):
         ax = self.df.plot(kind='line', x='epoch', title=plot_title)
 
         self._set_layout(ax)
-
+        self._set_ticks_units(ax)
         if plot:
             plt.show()
         else:
             self.save(save_title + "line")
             plt.close()
+
+    def _set_ticks_units(self, ax):
+        if self.name == 'disk':
+            y_formatter = tick.FormatStrFormatter('%1.2f MB')
+            ax.yaxis.set_major_formatter(y_formatter)
 
     def plot_stacked(self, columns=None, plot=False):
         """
@@ -196,6 +297,7 @@ class DStatFrame(object):
         ax = self.df.plot.area(stacked=False, x='epoch', y=columns, title=plot_title)
 
         self._set_layout(ax)
+        self._set_ticks_units(ax)
 
         if plot:
             plt.show()
@@ -211,11 +313,11 @@ class DStatFrame(object):
         if name == 'total cpu usage' or name == 'cpu' or name.startswith('cpu'):
             return "percentage"
         elif name.startswith('net/') or name == 'network':
-            return "bandwidth [MBps]"
+            return "bandwidth [Mbps]"
         elif name.startswith('dsk/') or name == 'disk':
-            return '#count'
+            return 'disk volume usage [MB]'
         else:
-            return "memory usage [MB]"
+            return "memory usage [GB]"
 
     def _set_layout(self, ax):
         ax.set_xlabel("time")

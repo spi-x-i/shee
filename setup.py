@@ -13,7 +13,8 @@ import os
 try:
     from setuptools import setup
 except ImportError:
-    from distutils import setup
+    from distutils.core import setup
+
 
 def check_dependencies():
     install_requires = []
@@ -21,15 +22,17 @@ def check_dependencies():
     try:
         import numpy
     except ImportError:
-        install_requires.append('numpy')
+        install_requires.append('numpy>=1.11')
     try:
         import matplotlib
     except ImportError:
-        install_requires.append('matplotlib')
+        install_requires.append('matplotlib>=1.3.1')
     try:
         import pandas
     except ImportError:
-        install_requires.append('pandas')
+        install_requires.append('pandas>=0.18')
+
+    return install_requires
 
 if __name__ == "__main__":
 
@@ -41,9 +44,9 @@ if __name__ == "__main__":
         author_email='74598@studenti.unimore.it',
         version='0.1',
         description='A simple data visualization tool.',
-        url='bla',
+        url='https://gitlab.tubit.tu-berlin.de/andrea-spina/shee',
         license='uncommon',
-        packages=['shee'],
+        packages=['shee', 'shee.frames', 'shee.parse'],
         install_requires=install_requires,
         entry_points={
           'console_scripts': [

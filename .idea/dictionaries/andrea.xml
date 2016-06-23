@@ -8,22 +8,45 @@
       <w>cpudir</w>
       <w>cpunum</w>
       <w>cpus</w>
+      <w>cpux</w>
+      <w>csvfile</w>
+      <w>dataframe</w>
+      <w>dataframes</w>
+      <w>devicedir</w>
       <w>dirname</w>
       <w>dstat</w>
       <w>ethnum</w>
+      <w>expdir</w>
+      <w>filepath</w>
+      <w>iterr</w>
+      <w>mainpage</w>
       <w>memdir</w>
+      <w>memoryusage</w>
+      <w>mems</w>
       <w>mins</w>
       <w>multindex</w>
       <w>ndir</w>
+      <w>noparse</w>
       <w>ogni</w>
+      <w>outdir</w>
       <w>outname</w>
       <w>parsable</w>
+      <w>pathtree</w>
       <w>questa</w>
+      <w>quotescontainer</w>
       <w>recv</w>
+      <w>scriptjs</w>
+      <w>sdnum</w>
       <w>sharex</w>
       <w>shee</w>
+      <w>subdevice</w>
+      <w>suffixs</w>
       <w>tesi</w>
+      <w>totalcpuusage</w>
+      <w>totcpusage</w>
+      <w>totcpuusage</w>
       <w>xlab</w>
+      <w>xticks</w>
       <w>ylab</w>
     </words>
   </dictionary>

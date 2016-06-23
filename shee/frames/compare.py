@@ -2,26 +2,38 @@
 # -*- coding: utf-8 -*-
 
 from frame import DStatFrame
+from shee.util import get_result_dir_name
 
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 
 
 class DStatCompare(DStatFrame):
-    def __init__(self, filename, columns, grain=False):
-        super(DStatCompare, self).__init__(filename, columns)
-        sname = filename.split(".")[0]  # path completo fino al nome del file meno '.csv' cartella dedicata
-        # setting nome file: la cartella sarà comparison, i nomi dei file saranno le colonne da confrontare
+    def __init__(self, filename, columns, frame=None, grain=False):
+        if frame is not None:
+            self.df = frame.df
+            self.device = frame.device
+            self._set_name(columns)
+        else:
+            super(DStatCompare, self).__init__(filename, columns)
+        sname = get_result_dir_name(filename)  # complete path will ends with the name of the csv file
+        # setting file name: directory: comparison, filename from columns names
         self.filename = sname + '/comparison/' + sname.split("/")[-1]
         self.device = 'comparison'
         df = self._read_dataframe(['epoch'] + columns, grain=grain)
         df.columns = df.columns.droplevel()
-        self.df = self._convert(df, ['epoch', 'usr', 'sys', 'idl', 'hiq', 'siq'], 1024*1024)
+        self.df = self._convert(df, ['epoch', 'usr', 'sys', 'idl', 'hiq', 'siq'], columns)
 
     @staticmethod
-    def _convert(df, not_convert, div):
+    def _convert(df, not_convert, to_compare):
         cols = df.columns.difference(not_convert)
-        df.ix[:, cols] = df.ix[:, cols].divide(div)
+        for col in to_compare:
+            if col.startswith('net'):
+                df.ix[:, cols] = df.ix[:, cols].divide(1024*1024/8)
+            elif col.startswith('memory'):
+                df.ix[:, cols] = df.ix[:, cols].divide(1024*1024*1024)
+            elif col.startswith('dsk'):
+                df.ix[:, cols] = df.ix[:, cols].divide(1024*1024)
         return df
 
     @staticmethod

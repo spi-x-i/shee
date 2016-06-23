@@ -2,30 +2,27 @@
 # -*- coding: utf-8 -*
 
 import os
-
 import time
 
-from page import WebObject
+from shee.web import WebObject
+from shee.util import get_result_dir_name
 
-from frames import DStatFrame
-from frames import DStatCpu
-from frames import DStatDisk
-from frames import DStatMemory
-from frames import DStatNetwork
-from frames import DStatCompare
-from frames import DStatAggregate
-
-from frames import DStatReadColumnsException
-
-DIR = "/home/andrea/TESI/PYTHON/shee-project/shee/examples"
+from shee.frames import DStatAggregate
+from shee.frames import DStatCompare
+from shee.frames import DStatCpu
+from shee.frames import DStatDisk
+from shee.frames import DStatFrame
+from shee.frames import DStatMemory
+from shee.frames import DStatNetwork
+from shee.frames import DStatReadColumnsException
 
 
 def evaluate_file(filename, fullname):
     return os.path.isfile(fullname) and filename.startswith('dstat') and filename.endswith('.csv')
 
 
-def total_cpu_evaluation(fullname, dirname, plot, grain=False):
-    ds = DStatCpu(fullname, grain=grain)
+def total_cpu_evaluation(fullname, dirname, plot, grain=False, df=None):
+    ds = DStatCpu(fullname, frame=df, grain=grain)
 
     cpudir = dirname + "/cpu"
     if not os.path.exists(cpudir):
@@ -36,11 +33,11 @@ def total_cpu_evaluation(fullname, dirname, plot, grain=False):
     ds.plot_stacked(columns=['usr', 'sys', 'idl'], plot=plot)
 
 
-def single_cpu_evaluation(fullname, dirname, plot, cpunum=None, grain=False):
+def single_cpu_evaluation(fullname, dirname, plot, cpunum=None, grain=False, df=None):
     n = cpunum if cpunum is not None else 1
     if cpunum is not None:
         try:
-            ds = DStatCpu(fullname, cpu=n, grain=grain)
+            ds = DStatCpu(fullname, cpu=n, grain=grain, frame=df)
 
             ndir = dirname + "/cpu" + "/cpu" + str(n)
             if not os.path.exists(ndir):
@@ -55,7 +52,7 @@ def single_cpu_evaluation(fullname, dirname, plot, cpunum=None, grain=False):
         while True:
             # if cpu number is specified, evaluating only that cpu, elsewhere evaluating all cpus
             try:
-                ds = DStatCpu(fullname, cpu=n, grain=grain)
+                ds = DStatCpu(fullname, cpu=n, grain=grain, frame=df)
 
                 ndir = dirname + "/cpu" + "/cpu" + str(n)
                 if not os.path.exists(ndir):
@@ -69,8 +66,8 @@ def single_cpu_evaluation(fullname, dirname, plot, cpunum=None, grain=False):
                 break
 
 
-def total_network_evaluation(fullname, dirname, plot, grain=False):
-    ds = DStatNetwork(fullname, grain=grain)
+def total_network_evaluation(fullname, dirname, plot, grain=False, df=None):
+    ds = DStatNetwork(fullname, grain=grain, frame=df)
 
     netdir = dirname + "/network"
     if not os.path.exists(netdir):
@@ -81,11 +78,11 @@ def total_network_evaluation(fullname, dirname, plot, grain=False):
     ds.plot_stacked(columns=['send', 'recv'], plot=plot)
 
 
-def single_network_evaluation(fullname, dirname, plot, ethnum=None, grain=False):
+def single_network_evaluation(fullname, dirname, plot, ethnum=None, grain=False, df=None):
     n = ethnum if ethnum is not None else 0
     if ethnum is not None:
         try:
-            ds = DStatNetwork(fullname, eth=n, grain=grain)
+            ds = DStatNetwork(fullname, eth=n, grain=grain, frame=df)
 
             ndir = dirname + "/network" + "/eth" + str(n)
             if not os.path.exists(ndir):
@@ -99,7 +96,7 @@ def single_network_evaluation(fullname, dirname, plot, ethnum=None, grain=False)
     else:
         while True:
             try:
-                ds = DStatNetwork(fullname, eth=n, grain=grain)
+                ds = DStatNetwork(fullname, eth=n, grain=grain, frame=df)
 
                 ndir = dirname + "/network" + "/eth" + str(n)
                 if not os.path.exists(ndir):
@@ -113,8 +110,8 @@ def single_network_evaluation(fullname, dirname, plot, ethnum=None, grain=False)
                 break
 
 
-def total_memory_evaluation(fullname, dirname, plot, grain=False):
-    ds = DStatMemory(fullname, grain=grain)
+def total_memory_evaluation(fullname, dirname, plot, grain=False, df=None):
+    ds = DStatMemory(fullname, grain=grain, frame=df)
 
     memdir = dirname + "/memory"
     if not os.path.exists(memdir):
@@ -126,8 +123,8 @@ def total_memory_evaluation(fullname, dirname, plot, grain=False):
     # no multiple memory device evaluation here
 
 
-def total_disk_evaluation(fullname, dirname, plot, grain=False):
-    ds = DStatDisk(fullname, grain=grain)
+def total_disk_evaluation(fullname, dirname, plot, grain=False, df=None):
+    ds = DStatDisk(fullname, grain=grain, frame=df)
 
     dskdir = dirname + "/disk"
     if not os.path.exists(dskdir):
@@ -138,11 +135,11 @@ def total_disk_evaluation(fullname, dirname, plot, grain=False):
     ds.plot_stacked(columns=['read', 'writ'], plot=plot)
 
 
-def single_disk_evaluation(fullname, dirname, plot, sdnum=None, grain=False):
+def single_disk_evaluation(fullname, dirname, plot, sdnum=None, grain=False, df=None):
     n = sdnum if sdnum is not None else 'a'
     if sdnum is not None:
         try:
-            ds = DStatDisk(fullname, disk=n, grain=grain)
+            ds = DStatDisk(fullname, disk=n, grain=grain, frame=df)
 
             ndir = dirname + "/disk" + "/sd" + n
             if not os.path.exists(ndir):
@@ -156,7 +153,7 @@ def single_disk_evaluation(fullname, dirname, plot, sdnum=None, grain=False):
     else:
         while True:
             try:
-                ds = DStatDisk(fullname, disk=n, grain=grain)
+                ds = DStatDisk(fullname, disk=n, grain=grain, frame=df)
 
                 ndir = dirname + "/disk" + "/sd" + n
                 if not os.path.exists(ndir):
@@ -169,9 +166,10 @@ def single_disk_evaluation(fullname, dirname, plot, sdnum=None, grain=False):
             except DStatReadColumnsException:
                 break
 
-def comparison_evaluation(fullname, dirname, columns, plot, grain=False):
+
+def comparison_evaluation(fullname, dirname, columns, plot, grain=False, df=None):
     try:
-        ds = DStatCompare(fullname, columns, grain=grain)
+        ds = DStatCompare(fullname, columns, grain=grain, frame=df)
 
         memdir = dirname + "/comparison"
         if not os.path.exists(memdir):
@@ -183,13 +181,16 @@ def comparison_evaluation(fullname, dirname, columns, plot, grain=False):
         exit(-1)
 
 
-def aggregating(input_dir, save=False, file=""):
+def aggregating_evaluation(dir, save=False, filename="", plot=False):
 
-    dir = input_dir
     file_list = os.listdir(dir)
-    if file:
-        dagg = DStatAggregate(input_dir, filename=file)
-        dagg.plot_stacked_avg()
+
+    aggr_dir = dir + '/aggregation'
+    if not os.path.exists(aggr_dir):
+        os.makedirs(aggr_dir)
+
+    if filename:  # a file name is given in input, initialize DStatAggregate object with given filename
+        dfs = None
     else:
         dfs = []
         for fn in file_list:
@@ -197,13 +198,21 @@ def aggregating(input_dir, save=False, file=""):
             fullname = os.path.join(dir, fn)
             if evaluate_file(fn, fullname):
                 try:
-                    df = DStatFrame(fullname, fullname.split('.')[0])
+                    df = DStatFrame(fullname, get_result_dir_name(fullname))
                     dfs.append(df)
                 except DStatReadColumnsException as e:
                     print "Wrong columns specified. " + e.message
                     exit(-1)
-        dagg = DStatAggregate(input_dir, dfs, save=save)
-        dagg.plot_stacked_avg()
+    dagg = DStatAggregate(dir, aggr_dir, dfs, filename=filename)
+
+    if save:
+        dagg.to_csv()
+
+    for k, v in dagg.get_dict().iteritems():
+        dagg.plot_aggr(v, mod=k, plot=plot)
+
+    return dagg.get_date(), dagg.get_nodes_list()
+
 
 def shee(input_dir, filename=None, processor=None, eth=None, sd=None, comparison=None, cpu=None, network=None,
          memory=None, disk=None, plot=False, grain=False, web=False, noparse=False, aggregate=False, save_agg=False,
@@ -223,13 +232,19 @@ def shee(input_dir, filename=None, processor=None, eth=None, sd=None, comparison
     :param plot:
     :param grain:
     :param web:
+    :param noparse:
+    :param aggregate:
+    :param save_agg:
+    :param file_agg:
     :return:
     """
-
     def evaluate_total_cpu():
         if cpu or web:
             return True
-        elif not memory and not network and not disk and processor is None and eth is None and sd is None and comparison is None:
+        elif (not memory and not network and
+              not disk and processor is None and
+              eth is None and sd is None and
+              comparison is None):
             return True
         else:
             return False
@@ -237,7 +252,10 @@ def shee(input_dir, filename=None, processor=None, eth=None, sd=None, comparison
     def evaluate_single_cpu():
         if processor is not None or web:
             return True
-        elif not memory and not network and not cpu and not disk and sd is None and eth is None and comparison is None:
+        elif (not memory and not network and
+              not cpu and not disk and
+              sd is None and eth is None and
+              comparison is None):
             return True
         else:
             return False
@@ -245,7 +263,10 @@ def shee(input_dir, filename=None, processor=None, eth=None, sd=None, comparison
     def evaluate_total_network():
         if network or web:
             return True
-        elif not memory and not cpu and not disk and eth is None and processor is None and sd is None and comparison is None:
+        elif (not memory and not cpu and
+              not disk and eth is None and
+              processor is None and sd is None and
+              comparison is None):
             return True
         else:
             return False
@@ -253,7 +274,10 @@ def shee(input_dir, filename=None, processor=None, eth=None, sd=None, comparison
     def evaluate_single_network():
         if eth is not None or web:
             return True
-        elif not memory and not network and not disk and not cpu and sd is None and processor is None and comparison is None:
+        elif (not memory and not network and
+              not disk and not cpu and
+              sd is None and processor is None and
+              comparison is None):
             return True
         else:
             return False
@@ -261,7 +285,10 @@ def shee(input_dir, filename=None, processor=None, eth=None, sd=None, comparison
     def evaluate_total_memory():
         if memory or web:
             return True
-        elif not cpu and not network and not disk and eth is None and processor is None and sd is None and comparison is None:
+        elif (not cpu and not network and
+              not disk and eth is None and
+              processor is None and sd is None and
+              comparison is None):
             return True
         else:
             return False
@@ -269,7 +296,10 @@ def shee(input_dir, filename=None, processor=None, eth=None, sd=None, comparison
     def evaluate_total_disk():
         if disk or web:
             return True
-        elif not memory and not cpu and not network and eth is None and processor is None and sd is None and comparison is None:
+        elif (not memory and not cpu and
+              not network and eth is None and
+              processor is None and sd is None and
+              comparison is None):
             return True
         else:
             return False
@@ -277,31 +307,22 @@ def shee(input_dir, filename=None, processor=None, eth=None, sd=None, comparison
     def evaluate_single_disk():
         if sd is not None or web:
             return True
-        elif not memory and not network and not cpu and not disk and processor is None and eth is None and comparison is None:
+        elif (not memory and not network and
+              not cpu and not disk and
+              processor is None and eth is None and
+              comparison is None):
             return True
         else:
             return False
 
-    web_obj = None
-    if web:
-        web_obj = WebObject()
-        if os.path.isabs(input_dir):
-            work_dir = input_dir
-            web_obj.set_dirname(work_dir + '/html')
-            web_obj.set_pathtree(work_dir)
-            if not os.path.exists(work_dir + '/html'):
-                os.makedirs(work_dir + '/html')
-        else:
-            work_dir = os.getcwd() + '/' + input_dir.split('/')[-2]
-            web_obj.set_dirname(work_dir + '/html')
-            web_obj.set_pathtree(work_dir)
-            if not os.path.exists(work_dir + '/html'):
-                os.makedirs(work_dir + '/html')
-        web_obj.set_filename('mainpage')
+    if not os.path.exists(input_dir):
+        print "Specified input directory doesn't exists"
+        exit(-1)
 
     if not noparse:
         # for each .csv file inside the directory computing the evaluation
         dir = input_dir
+
         file_list = os.listdir(dir)
 
         if filename is not None:  # one filename evaluation
@@ -320,45 +341,65 @@ def shee(input_dir, filename=None, processor=None, eth=None, sd=None, comparison
                 print "Evaluating : " + fullname
 
                 # create results directory
-                dn = fullname.split('.')[0]
+                # dn = fullname.split('.')[0]
+                # if not os.path.exists(dn):
+                #     os.makedirs(dn)
+
+                # get result allows also dotted absolute paths
+                dn = get_result_dir_name(fullname)
                 if not os.path.exists(dn):
                     os.makedirs(dn)
 
+                frame = DStatFrame(fullname, 'base')
+
                 if evaluate_total_cpu():
-                    total_cpu_evaluation(fullname, dn, plot, grain)
+                    total_cpu_evaluation(fullname, dn, plot, grain, frame)
                 if evaluate_single_cpu():
-                    single_cpu_evaluation(fullname, dn, plot, processor, grain)
+                    single_cpu_evaluation(fullname, dn, plot, processor, grain, frame)
 
                 if evaluate_total_network():
-                    total_network_evaluation(fullname, dn, plot, grain)
+                    total_network_evaluation(fullname, dn, plot, grain, frame)
                 if evaluate_single_network():
-                    single_network_evaluation(fullname, dn, plot, eth, grain)
+                    single_network_evaluation(fullname, dn, plot, eth, grain, frame)
 
                 if evaluate_total_memory():
-                    total_memory_evaluation(fullname, dn, plot, grain)
+                    total_memory_evaluation(fullname, dn, plot, grain, frame)
 
                 if evaluate_total_disk():
-                    total_disk_evaluation(fullname, dn, plot, grain)
+                    total_disk_evaluation(fullname, dn, plot, grain, frame)
 
                 if evaluate_single_disk():
-                    single_disk_evaluation(fullname, dn, plot, sd, grain)
+                    single_disk_evaluation(fullname, dn, plot, sd, grain, frame)
 
                 if comparison is not None:
-                    comparison_evaluation(fullname, dn, columns=comparison, plot=plot, grain=grain)
+                    comparison_evaluation(fullname, dn, columns=comparison, plot=plot, grain=grain, df=frame)
 
                 print fn + " analysis completed.(Execution time: %s secs" % (time.time() - start_time) + ")"
 
             else:
                 print "%s is a directory or a not parsable file" % fn
+
+    date, nodes = None, None
+    if aggregate or web:
+        save = save_agg
+        filename = file_agg if file_agg is not None else ''
+        date, nodes = aggregating_evaluation(input_dir, save=save, filename=filename, plot=plot)
+
     if web:
-        web_obj.page()
-        exit(0)
-
-    if aggregate:
-        if save_agg:
-            aggregating(input_dir, save=True)
-        elif file_agg is not None:
-            aggregating(input_dir, file=file_agg)
+        web_obj = WebObject()
+        if os.path.isabs(input_dir):
+            work_dir = input_dir
+            web_obj.set_dirname(work_dir + '/html')
+            web_obj.set_pathtree(work_dir)
+            if not os.path.exists(work_dir + '/html'):
+                os.makedirs(work_dir + '/html')
         else:
-            aggregating(input_dir)
+            work_dir = os.getcwd() + '/' + '/'.join(input_dir.split('/'))
+            web_obj.set_dirname(work_dir + '/html')
+            web_obj.set_pathtree(work_dir)
+            if not os.path.exists(work_dir + '/html'):
+                os.makedirs(work_dir + '/html')
+        web_obj.set_filename('mainpage')
 
+        web_obj.page(agg_date=date, agg_nodes=nodes)
+        exit(0)
