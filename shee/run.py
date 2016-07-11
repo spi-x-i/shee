@@ -181,7 +181,7 @@ def comparison_evaluation(fullname, dirname, columns, plot, grain=False, df=None
         exit(-1)
 
 
-def aggregating_evaluation(dir, save=False, filename="", plot=False):
+def aggregating_evaluation(dir, save=False, filename="", plot=False, grain=False):
 
     file_list = os.listdir(dir)
 
@@ -203,7 +203,7 @@ def aggregating_evaluation(dir, save=False, filename="", plot=False):
                 except DStatReadColumnsException as e:
                     print "Wrong columns specified. " + e.message
                     exit(-1)
-    dagg = DStatAggregate(dir, aggr_dir, dfs, filename=filename)
+    dagg = DStatAggregate(dir, aggr_dir, dfs, filename=filename, grain=grain)
 
     if save:
         dagg.to_csv()
@@ -383,7 +383,7 @@ def shee(input_dir, filename=None, processor=None, eth=None, sd=None, comparison
     if aggregate or web:
         save = save_agg
         filename = file_agg if file_agg is not None else ''
-        date, nodes = aggregating_evaluation(input_dir, save=save, filename=filename, plot=plot)
+        date, nodes = aggregating_evaluation(input_dir, save=save, filename=filename, plot=plot, grain=grain)
 
     if web:
         web_obj = WebObject()

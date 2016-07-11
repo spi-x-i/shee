@@ -3,6 +3,8 @@
 
 import os
 
+import datetime
+
 import numpy as np
 import pandas as pd
 
@@ -23,7 +25,7 @@ class DStatAggregateNoValidExperiments(DStatException):
 
 
 class DStatAggregate(object):
-    def __init__(self, input_dir, output_dir, dfs=None, filename=""):
+    def __init__(self, input_dir, output_dir, dfs=None, filename="", grain=False):
         """
         The init function here should provide there ordered steps:
             - select overlapped dfs and save those in one aggregating dfs dictionary - keyed by following columns:
@@ -56,8 +58,13 @@ class DStatAggregate(object):
 
             dfs = self._time_as_index_topandas(dfs)  # returns dataframes
 
+            # method returns the aggregated dataframe
             df = self._join_dfs(dfs)
             df = self._reshape(df)
+
+            if grain:
+                # filter by selected time range
+                df = self._partition_time(df)
 
             self.df = self._to_dict(df)
 
@@ -332,7 +339,7 @@ class DStatAggregate(object):
         Create a tmp dataframe with a new datetime objects index which covers the entire observation period
         and left outer joins each dataframe with it
         :param dfs: list of dataframes
-        :return:
+        :return: the aggregated dataframe
         """
         print 'Joining Dataframes'
         left_df = self._create_left_df(dfs)
@@ -488,3 +495,40 @@ class DStatAggregate(object):
         outname = outdir + '/' + save_title + '.png'
         plt.savefig(outname, bbox_inches='tight')
         print outname + ' created'
+
+    @staticmethod
+    def _numpyds64_to_datetime(nptime):
+        ts = (nptime - np.datetime64('1970-01-01T00:00:00Z')) / np.timedelta64(1, 's')
+        return datetime.datetime.utcfromtimestamp(ts)
+
+    def _partition_time(self, df):
+        start = self._numpyds64_to_datetime(df.index.values[0])
+        end = self._numpyds64_to_datetime(df.index.values[-1])
+        while True:
+            print "\n"
+            print "Start observation date time: %s" % str(start)
+            print "End observation date time: %s" % str(end)
+            print "Observation interval request (format: %H:%M:%S , e.g. 00:00:00)"
+            new_start = raw_input("    Select a new starting observation time >> ")
+            new_end = raw_input("    Select a new ending observation time >> ")
+            try:
+                final_start = datetime.datetime.strptime(new_start, '%H:%M:%S')
+                final_start = final_start.replace(year=start.date().year, month=start.date().month, day=start.date().day )
+                final_end = datetime.datetime.strptime(new_end, '%H:%M:%S')
+                final_end = final_end.replace(year=end.date().year, month=end.date().month, day=end.date().day )
+            except ValueError as e:
+                print e.message
+                continue
+            # evaluating correctness of time given
+            if (final_start < start):
+                print "Starting time is not a valid time. Try again."
+                continue
+            elif (final_end > end):
+                print "Ending time is not a valid time. Try again."
+                continue
+            elif (final_start > final_end):
+                print "Ending date is prior starting date. Try again."
+            else:
+                # here is possible to partition and return partitioned dataframe
+                ret = df[(df.index > final_start) & (df.index < final_end)]
+                return ret
