@@ -25,6 +25,14 @@ class DStatAggregateNoValidExperiments(DStatException):
 
 
 class DStatAggregate(object):
+
+    COLORS = [
+                '#FFC107',
+                '#3F51B5'
+                #'#F44336',
+                #'#4CAF50',
+            ]
+
     def __init__(self, input_dir, output_dir, dfs=None, filename="", grain=False):
         """
         The init function here should provide there ordered steps:
@@ -66,10 +74,15 @@ class DStatAggregate(object):
                 # filter by selected time range
                 df = self._partition_time(df)
 
+            # save the main object variable
             self.df = self._to_dict(df)
 
         self.nodes = self.filename.split('/')[-1].split('.')[0].split('-')[1::2]
         self.date = self.df.itervalues().next().index[0]
+
+        # turn the indexes from datetimes to runtimes in seconds
+        self._to_runtime()
+
         self.outdir = output_dir
 
     def get_dict(self):
@@ -396,6 +409,11 @@ class DStatAggregate(object):
         :param plot: Boolean, if True results will be plotted
         :return:
         """
+
+        # here we need a method for printing runtimes instead of datetime timestamps
+        # df = self._to_runtimes(df)
+        # print df['epoch']
+
         if mod == 'cpu':
             self._plot_together(df[['avg_usr', 'std_usr']], 'CPU usage: user [%]', 'cpu', 'usr', plot)
             self._plot_together(df[['avg_sys', 'std_sys']], 'CPU usage: system [%]', 'cpu', 'sys', plot)
@@ -415,28 +433,141 @@ class DStatAggregate(object):
             self._plot_together(df[['avg_read', 'std_read']], 'Disk Volume: read [MB]', 'dsk', 'read', plot)
             self._plot_together(df[['avg_writ', 'std_writ']], 'Disk volume: write [MB]', 'dsk', 'writ', plot)
 
-    def _plot_together(self, df, plot_title, device, metric, plot=False):
+    def plot_clean(self, df, mod='', plot=False):
         """
-        Plots all values in the second level of the column in one graph, no stacked lines
-        :param plot:
+        Plotting aggregating results for each device metrics without stddev info and in a <paper shaped> way
+        There are two cases with multiple metrics to plot:
+        - network: send and received
+        - disk: read and write
+        In this case, a new aggregated metric will be plotted as the sum of the two metrics
+        :param df: input dataframe which contains results to plot
+        :param mod: current device - needed to select matching metrics (e.g. if mod is 'cpu' then select 'usr,sys,idl..'
+        :param plot: Boolean, if True results will be plotted
+        :return:
         """
 
-        hours = mdates.HourLocator()
-        mins = mdates.MinuteLocator()
+        if mod == 'cpu':
+            self._plot_together(df[['avg_usr']], 'CPU usage [%]', 'cpu', ['usr'], plot, clean=True)
+        elif mod == 'net':
+            tmp = df
+            tmp['total'] = df['avg_send'] + df['avg_recv']
+            self._plot_together(tmp[['avg_send','total']], 'Network [MBps]', 'net', ['send', 'Total'], plot, clean=True)
+        elif mod == 'mem':
+            self._plot_together(df[['avg_used']], 'Memory [GB]', 'mem', ['used'], plot, clean=True)
+        else:  # disk
+            tmp = df
+            tmp['total'] = df['avg_read'] + df['avg_writ']
+            self._plot_together(tmp[['avg_read', 'total']], 'Disk Volume [MB]', 'dsk', ['read', 'Total'], plot, clean=True)
 
-        save_title = df.index[0].strftime('%Y-%m-%d') + '-' + device + '-' + metric
 
-        plt.figure()
-        plt.title(plot_title)
-        plt.plot(df.index, df['avg_' + metric], 'k', label=metric + ' avg')
-        plt.fill_between(df.index,
-                         df['avg_' + metric] - 2*df['std_' + metric],
-                         df['avg_' + metric] + 2*df['std_' + metric],
-                         color='b',
-                         alpha=0.2)
+    def _to_runtime(self):
+        """
+        Turn dataframes indexes to runtimes in seconds
+        :return:
+        """
+        ret = dict()
+        for device, df in self.df.iteritems():
+            df = df.set_index((df['epoch'].index.values - df['epoch'].index.values[0])
+                            .astype('timedelta64[s]')
+                            .astype(int))
+            ret[device] = df
+        self.df = ret
 
-        self._set_layout(plt.gca(), plot_title, hours, mins, device)
-        self._set_ticks_units(plt.gca(), device)
+    @staticmethod
+    def _trim(metrics, sep='-'):
+        """
+        Trim a list to a string with a sep character
+        :param metrics:
+        :param sep: sep character
+        :return:
+        """
+        assert len(sep) == 1, "Separator charachter should be a char (str retrieved)"
+
+        ret = ''
+        if isinstance(metrics, str):
+            ret += metrics
+            return ret
+        else:
+            for m in metrics:
+                ret += (m + sep)
+            return ret[:-1]
+
+    def _plot_together(self, df, plot_title, device, metrics, plot=False, clean=False):
+        """
+
+        Plot together handles the aggregated plots, we have a two cases
+        - clean:
+            Plotting of main aggregated results in a paper shaped way: the following metrics will be printed:
+            . cpu -> usr
+            . mem -> used
+            - dsk -> read, total [= read + writ]
+            - net -> sent, total [= send + recv]
+        - not clean:
+            Plotting each aggregated results and the standard deviation range
+        :param df: Aggregated dataframe
+        :param plot_title: the plot title
+        :param device: string with the following allowed values: cpu, mem, net, dsk
+        :param metrics: metrics to take in account for plotting related to the device
+        :param plot: Boolean. If it is True, the plot will be shown
+        :param clean: Boolean. If it is True, the paper shaped plotting is executed
+        :return:
+        """
+
+        # Since we have not datetime indexes, we don't need the date formatter
+        # hours = mdates.HourLocator()
+        # mins = mdates.MinuteLocator()
+
+        save_title = self.date.date().strftime('%Y-%m-%d') + '-' + device + '-' + self._trim(metrics)
+
+        if clean:
+            save_title += '-clean'
+
+            # rename columns in order to get easier plot labelling
+            df.columns = metrics
+
+            if len(metrics) == 1:
+                ax = df.plot.area(
+                    stacked=False,
+                    alpha=1.0,
+                    figsize=(25.9, 3.7),
+                    linewidth=4,
+                    fontsize=30,
+                    color=self.COLORS[1],
+                    clip_on=True)
+            else:
+                ax = plt.gca()
+                # met is the reversed list of metrics - print the Total in background then the rest on it
+                # i preserves the original metrics indexing - needed for style purposes
+                for i, met in reversed(list(enumerate(metrics))):
+                    ax = df.plot(
+                        kind='area',
+                        y=met,
+                        ax=ax,
+                        colors=self.COLORS[i],
+                        figsize=(25.9, 3.7),
+                        fontsize=30,
+                        alpha=1.0,
+                        linewidth=3+i,
+                        stacked=False,
+                        clip_on=True)
+
+            ax = plt.gca() if ax is None else ax
+            self._set_layout(ax, plot_title, device, fontsize=30)
+
+        else:
+            plt.figure()
+            plt.title(plot_title)
+            plt.plot(df.index, df['avg_' + metrics], 'k', label=metrics + ' avg')
+            plt.fill_between(
+                df.index,
+                df['avg_' + metrics] - 2*df['std_' + metrics],
+                df['avg_' + metrics] + 2*df['std_' + metrics],
+                color='b',
+                alpha=0.2)
+            ax = plt.gca()
+            self._set_layout(ax, plot_title, device)
+
+        self._set_ticks_units(ax, device)
 
         if plot:
             plt.show()
@@ -450,7 +581,7 @@ class DStatAggregate(object):
             y_formatter = tick.FormatStrFormatter('%1.2f MB')
             ax.yaxis.set_major_formatter(y_formatter)
 
-    def _set_layout(self, ax, ylab, hours, mins, device):
+    def _set_layout(self, ax, ylab, device, fontsize=12, hours=None, mins=None):
         """
         Setters of plotting layout
         :param ax: get matplotlib axes object
@@ -460,11 +591,13 @@ class DStatAggregate(object):
         :param device: current device
         :return:
         """
-        ax.set_xlabel("time")
+        ax.set_xlabel("runtime [sec]", fontsize=fontsize)
         ax.xaxis.grid(True)
-        ax.set_ylabel(ylab)  # self._set_unit()
+        ax.set_ylabel(ylab, fontsize=fontsize)  # self._set_unit()
         ax.yaxis.grid(True)
-        self._set_subplots_time(ax=ax, hours=hours, mins=mins)
+
+        if hours is not None and mins is not None:
+            self._set_subplots_time(ax=ax, hours=hours, mins=mins)
 
         if device == 'mem' or device == 'net':
             ax.get_yaxis().get_major_formatter().set_useOffset(False)
@@ -472,7 +605,8 @@ class DStatAggregate(object):
         box = ax.get_position()
         ax.set_position([box.x0, box.y0, box.width, box.height])
 
-        plt.legend(loc="upper left", bbox_to_anchor=(1, 0.5))
+        # anchoring the legend outside of the chart scope
+        # plt.legend(loc="upper left", bbox_to_anchor=(1, 0.5))
 
     @staticmethod
     def _set_subplots_time(ax, hours, mins):

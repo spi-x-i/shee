@@ -210,6 +210,7 @@ def aggregating_evaluation(dir, save=False, filename="", plot=False, grain=False
 
     for k, v in dagg.get_dict().iteritems():
         dagg.plot_aggr(v, mod=k, plot=plot)
+        dagg.plot_clean(v, mod=k, plot=plot)
 
     return dagg.get_date(), dagg.get_nodes_list()
 
@@ -314,6 +315,8 @@ def shee(input_dir, filename=None, processor=None, eth=None, sd=None, comparison
             return True
         else:
             return False
+
+    print "Opening the following dstat files ..."
 
     if not os.path.exists(input_dir):
         print "Specified input directory doesn't exists"
