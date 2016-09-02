@@ -101,6 +101,7 @@ class DStatAggregate(object):
         """Export dict-like object dataframes in .csv sheets """
 
         for k, v in self.df.iteritems():
+            try:
             v.to_csv(self.filename + '_' + k + '.csv', tupleize_cols=False,) # date_format='%Y-%m-%d %H:%M:%S.%f')
 
     def _to_dict(self, df):
@@ -332,6 +333,11 @@ class DStatAggregate(object):
         for df in dfs:
             ret += '-'.join(df.name.split('-')[-2:])
             ret += '-'
+        if len(ret) > 255:
+            red = ""
+            red += '-'.join(df.name.split('-')[-1])
+            red += '-'
+            ret = red
         return input_dir + '/' + ret[:-1]
 
     @staticmethod
