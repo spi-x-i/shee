@@ -187,6 +187,12 @@ class DStatAggregate(object):
         df['avg_send'] = df.iloc[:, df.columns.get_level_values(2) == 'send'].mean(axis=1)
         df['avg_recv'] = df.iloc[:, df.columns.get_level_values(2) == 'recv'].mean(axis=1)
 
+        df['sum_send'] = df.iloc[:, df.columns.get_level_values(2) == 'send'].sum(axis=1)
+        df['sum_recv'] = df.iloc[:, df.columns.get_level_values(2) == 'recv'].sum(axis=1)
+
+        df['cumsum_send'] = df['sum_send'].cumsum()
+        df['cumsum_recv'] = df['sum_recv'].cumsum()
+
         df['std_send'] = df.iloc[:, df.columns.get_level_values(2) == 'send'].std(axis=1)
         df['std_recv'] = df.iloc[:, df.columns.get_level_values(2) == 'recv'].std(axis=1)
 
@@ -209,6 +215,9 @@ class DStatAggregate(object):
         df['std_free'] = df.iloc[:, df.columns.get_level_values(2) == 'free'].std(axis=1)
         df['std_cach'] = df.iloc[:, df.columns.get_level_values(2) == 'cach'].std(axis=1)
 
+        df['sum_used'] = df.iloc[:, df.columns.get_level_values(2) == 'used'].sum(axis=1)
+        df['cumsum_used'] = df['sum_used'].cumsum()
+
         return df
 
     @staticmethod
@@ -220,6 +229,12 @@ class DStatAggregate(object):
         """
         df['avg_read'] = df.iloc[:, df.columns.get_level_values(2) == 'read'].mean(axis=1)
         df['avg_writ'] = df.iloc[:, df.columns.get_level_values(2) == 'writ'].mean(axis=1)
+
+        df['sum_read'] = df.iloc[:, df.columns.get_level_values(2) == 'read'].sum(axis=1)
+        df['sum_writ'] = df.iloc[:, df.columns.get_level_values(2) == 'writ'].sum(axis=1)
+
+        df['cumsum_read'] = df['sum_read'].cumsum()
+        df['cumsum_writ'] = df['sum_writ'].cumsum()
 
         df['std_read'] = df.iloc[:, df.columns.get_level_values(2) == 'read'].std(axis=1)
         df['std_writ'] = df.iloc[:, df.columns.get_level_values(2) == 'writ'].std(axis=1)
@@ -429,14 +444,19 @@ class DStatAggregate(object):
         elif mod == 'net':
             self._plot_together(df[['avg_send', 'std_send']], 'Network Bandwidth: sent [MBps]', 'net', 'send', plot)
             self._plot_together(df[['avg_recv', 'std_recv']], 'Network Bandwidth: received [MBps]', 'net', 'recv', plot)
+            self._plot_together(df[['sum_send', 'cumsum_send']], 'Cumulative Network Bandwidth: sent [MBps]', 'net', ['sum_send', 'cumsum_send'], plot, clean=True)
+            self._plot_together(df[['sum_recv', 'cumsum_recv']], 'Cumulative Network Bandwidth: received [MBps]', 'net', ['sum_recv', 'cumsum_recv'], plot, clean=True)
         elif mod == 'mem':
             self._plot_together(df[['avg_used', 'std_used']], 'Memory usage: used [GB]', 'mem', 'used', plot)
             self._plot_together(df[['avg_free', 'std_free']], 'Memory usage: free [GB]', 'mem', 'free', plot)
             self._plot_together(df[['avg_buff', 'std_buff']], 'Memory usage: buff [GB]', 'mem', 'buff', plot)
             self._plot_together(df[['avg_cach', 'std_cach']], 'Memory usage: cach [GB]', 'mem', 'cach', plot)
+            self._plot_together(df[['sum_used', 'cumsum_used']], 'Cumulative Memory usage: used [GB]', 'mem', ['sum_used', 'cumsum_used'], plot, clean=True)
         else:  # disk
             self._plot_together(df[['avg_read', 'std_read']], 'Disk Volume: read [MB]', 'dsk', 'read', plot)
             self._plot_together(df[['avg_writ', 'std_writ']], 'Disk volume: write [MB]', 'dsk', 'writ', plot)
+            self._plot_together(df[['sum_read', 'cumsum_read']], 'Cumulative Disk Volume: read [MB]', 'dsk', ['sum_read', 'cumsum_read'], plot, clean=True)
+            self._plot_together(df[['sum_writ', 'cumsum_writ']], 'Cumulative Disk volume: write [MB]', 'dsk', ['sum_writ', 'cumsum_writ'], plot, clean=True)
 
     def plot_clean(self, df, mod='', plot=False):
         """
