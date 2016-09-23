@@ -181,9 +181,9 @@ def comparison_evaluation(fullname, dirname, columns, plot, grain=False, df=None
         exit(-1)
 
 
-def aggregating_evaluation(dir, save=False, filename="", plot=False, grain=False):
+def aggregating_evaluation(dir, save=False, filename="", plot=False, grain=False, cum=False):
 
-    file_list = os.listdir(dir)
+    file_list = os.listdir(dir) # catch the file list at the current dir
 
     aggr_dir = dir + '/aggregation'
     if not os.path.exists(aggr_dir):
@@ -203,7 +203,7 @@ def aggregating_evaluation(dir, save=False, filename="", plot=False, grain=False
                 except DStatReadColumnsException as e:
                     print "Wrong columns specified. " + e.message
                     exit(-1)
-    dagg = DStatAggregate(dir, aggr_dir, dfs, filename=filename, grain=grain)
+    dagg = DStatAggregate(dir, aggr_dir, dfs, filename=filename, grain=grain, cumulative=cum)
 
     if save:
         dagg.to_csv()
@@ -217,7 +217,7 @@ def aggregating_evaluation(dir, save=False, filename="", plot=False, grain=False
 
 def shee(input_dir, filename=None, processor=None, eth=None, sd=None, comparison=None, cpu=None, network=None,
          memory=None, disk=None, plot=False, grain=False, web=False, noparse=False, aggregate=False, save_agg=False,
-         file_agg=None):
+         file_agg=None, cumulative=False):
     """
 
     :param input_dir: input file directory - if not specified the working directory will be parsed
@@ -237,6 +237,7 @@ def shee(input_dir, filename=None, processor=None, eth=None, sd=None, comparison
     :param aggregate:
     :param save_agg:
     :param file_agg:
+    :param cumulative:
     :return:
     """
     def evaluate_total_cpu():
@@ -386,7 +387,8 @@ def shee(input_dir, filename=None, processor=None, eth=None, sd=None, comparison
     if aggregate or web:
         save = save_agg
         filename = file_agg if file_agg is not None else ''
-        date, nodes = aggregating_evaluation(input_dir, save=save, filename=filename, plot=plot, grain=grain)
+        date, nodes = aggregating_evaluation(input_dir, save=save, filename=filename, plot=plot,
+                                             grain=grain, cum=cumulative)
 
     if web:
         web_obj = WebObject()

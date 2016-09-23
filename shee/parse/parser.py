@@ -24,6 +24,7 @@ class SheeParser(object):
         'aggregate': 'If specified, aggregated results will be computed',
         'save_agg': 'Stores new .csv files with global aggregated results (one per metric)',
         'file_agg': 'Searches FILE_AGG file in the working directory and computes evaluation',
+        'cumulative': 'Compute cumulative - sum up at runtime - charts for compatible metrics (cluster-level only)'
     }
 
     def __init__(self):
@@ -49,6 +50,7 @@ class SheeParser(object):
         plot -> if not given returns False
         time -> if not given returns False
         web -> if not given returns False
+        cumulative -> if not given returns False
 
         aggregate -> if not given returns False
         save_agg -> if not given returns False
@@ -72,6 +74,7 @@ class SheeParser(object):
         self.parser.add_argument("-P", "--plot",        help=self.HELPS['plot'],        action="store_true")
         self.parser.add_argument("-T", "--time",        help=self.HELPS['time'],        action="store_true")
         self.parser.add_argument("-w", "--web",         help=self.HELPS['web'],         action="store_true")
+        self.parser.add_argument("-C", "--cumulative",  help=self.HELPS['cumulative'],  action='store_true')
 
         self.parser.add_argument("-a", "--aggregate",   help=self.HELPS['aggregate'],   action="store_true")
         self.parser.add_argument("-s", "--save_agg",    help=self.HELPS['save_agg'],    action="store_true")
