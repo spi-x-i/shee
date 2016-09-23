@@ -39,6 +39,7 @@ def main(args=None):
     processor = args.processor if args.processor is not None else None
     eth = args.eth if args.eth is not None else None
     sd = args.sd if args.sd is not None else None
+    cums = args.cumulative
 
     memory = args.memory
     network = args.network
@@ -55,15 +56,20 @@ def main(args=None):
 
     if (save_agg or file_agg is not None) and not aggregate:
         print " %s option allowed only with -a option" % ("-s [--save_agg]" if save_agg else "-F [--file_agg]")
+        exit(-1)
 
-    if (args.noparse) and (not web and not aggregate):
+    if args.noparse and (not web and not aggregate):
         print " -O [--noparse] option allowed only with -w -a options"
+        exit(-1)
+
+    if cums and not aggregate:
+        print " -C [--cumulative] option allowed with -a option only"
         exit(-1)
 
     noparse = args.noparse
 
     shee(input_dir, filename, processor, eth, sd, comparison, cpu, network, memory,
-         disk, plot, time, web, noparse, aggregate, save_agg, file_agg)
+         disk, plot, time, web, noparse, aggregate, save_agg, file_agg, cums)
 
 
 if __name__ == "__main__":

@@ -33,7 +33,7 @@ class DStatAggregate(object):
                 #'#4CAF50',
             ]
 
-    def __init__(self, input_dir, output_dir, dfs=None, filename="", grain=False):
+    def __init__(self, input_dir, output_dir, dfs=None, filename="", grain=False, cumulative=False):
         """
         The init function here should provide there ordered steps:
             - select overlapped dfs and save those in one aggregating dfs dictionary - keyed by following columns:
@@ -49,6 +49,8 @@ class DStatAggregate(object):
         :param dfs: list o base dfs inside main directory
         :param filename: base abspath input filename
         """
+        self.cumulative_feat = cumulative
+
         if len(filename):
             self.filename = input_dir + filename
             self.df = self._read_csv(self.filename)
@@ -177,8 +179,7 @@ class DStatAggregate(object):
 
         return df
 
-    @staticmethod
-    def _compute_net(df):
+    def _compute_net(self, df):
         """
         Computes main operations on cpu data
         :param df: input dataframe
@@ -187,19 +188,19 @@ class DStatAggregate(object):
         df['avg_send'] = df.iloc[:, df.columns.get_level_values(2) == 'send'].mean(axis=1)
         df['avg_recv'] = df.iloc[:, df.columns.get_level_values(2) == 'recv'].mean(axis=1)
 
-        df['sum_send'] = df.iloc[:, df.columns.get_level_values(2) == 'send'].sum(axis=1)
-        df['sum_recv'] = df.iloc[:, df.columns.get_level_values(2) == 'recv'].sum(axis=1)
-
-        df['cumsum_send'] = df['sum_send'].cumsum()
-        df['cumsum_recv'] = df['sum_recv'].cumsum()
-
         df['std_send'] = df.iloc[:, df.columns.get_level_values(2) == 'send'].std(axis=1)
         df['std_recv'] = df.iloc[:, df.columns.get_level_values(2) == 'recv'].std(axis=1)
 
+        if self.cumulative_feat:
+            df['sum_send'] = df.iloc[:, df.columns.get_level_values(2) == 'send'].sum(axis=1)
+            df['sum_recv'] = df.iloc[:, df.columns.get_level_values(2) == 'recv'].sum(axis=1)
+
+            df['cumulative_send'] = df['sum_send'].cumsum()
+            df['cumulative_recv'] = df['sum_recv'].cumsum()
+
         return df
 
-    @staticmethod
-    def _compute_mem(df):
+    def _compute_mem(self, df):
         """
         Computes main operations on cpu data
         :param df: input dataframe
@@ -215,13 +216,14 @@ class DStatAggregate(object):
         df['std_free'] = df.iloc[:, df.columns.get_level_values(2) == 'free'].std(axis=1)
         df['std_cach'] = df.iloc[:, df.columns.get_level_values(2) == 'cach'].std(axis=1)
 
-        df['sum_used'] = df.iloc[:, df.columns.get_level_values(2) == 'used'].sum(axis=1)
-        df['cumsum_used'] = df['sum_used'].cumsum()
+        if self.cumulative_feat:
+            df['sum_used'] = df.iloc[:, df.columns.get_level_values(2) == 'used'].sum(axis=1)
+
+            df['cumulative_used'] = df['sum_used'].cumsum()
 
         return df
 
-    @staticmethod
-    def _compute_dsk(df):
+    def _compute_dsk(self, df):
         """
         Computes main operations on cpu data
         :param df: input dataframe
@@ -230,14 +232,15 @@ class DStatAggregate(object):
         df['avg_read'] = df.iloc[:, df.columns.get_level_values(2) == 'read'].mean(axis=1)
         df['avg_writ'] = df.iloc[:, df.columns.get_level_values(2) == 'writ'].mean(axis=1)
 
-        df['sum_read'] = df.iloc[:, df.columns.get_level_values(2) == 'read'].sum(axis=1)
-        df['sum_writ'] = df.iloc[:, df.columns.get_level_values(2) == 'writ'].sum(axis=1)
-
-        df['cumsum_read'] = df['sum_read'].cumsum()
-        df['cumsum_writ'] = df['sum_writ'].cumsum()
-
         df['std_read'] = df.iloc[:, df.columns.get_level_values(2) == 'read'].std(axis=1)
         df['std_writ'] = df.iloc[:, df.columns.get_level_values(2) == 'writ'].std(axis=1)
+
+        if self.cumulative_feat:
+            df['sum_read'] = df.iloc[:, df.columns.get_level_values(2) == 'read'].sum(axis=1)
+            df['sum_writ'] = df.iloc[:, df.columns.get_level_values(2) == 'writ'].sum(axis=1)
+
+            df['cumulative_read'] = df['sum_read'].cumsum()
+            df['cumulative_writ'] = df['sum_writ'].cumsum()
 
         return df
 
@@ -444,19 +447,30 @@ class DStatAggregate(object):
         elif mod == 'net':
             self._plot_together(df[['avg_send', 'std_send']], 'Network Bandwidth: sent [MBps]', 'net', 'send', plot)
             self._plot_together(df[['avg_recv', 'std_recv']], 'Network Bandwidth: received [MBps]', 'net', 'recv', plot)
-            self._plot_together(df[['sum_send', 'cumsum_send']], 'Cumulative Network Bandwidth: sent [MBps]', 'net', ['sum_send', 'cumsum_send'], plot, clean=True)
-            self._plot_together(df[['sum_recv', 'cumsum_recv']], 'Cumulative Network Bandwidth: received [MBps]', 'net', ['sum_recv', 'cumsum_recv'], plot, clean=True)
+
+            if self.cumulative_feat:
+                self._plot_together(df[['sum_send', 'cumulative_send']], 'Network Bandwidth: sent [MBps] and Cumulative',
+                                    'net', 'send', plot)
+                self._plot_together(df[['sum_recv', 'cumulative_recv']], 'Network Bandwidth: received [MBps] and Cumulative',
+                                    'net', 'recv', plot)
         elif mod == 'mem':
             self._plot_together(df[['avg_used', 'std_used']], 'Memory usage: used [GB]', 'mem', 'used', plot)
             self._plot_together(df[['avg_free', 'std_free']], 'Memory usage: free [GB]', 'mem', 'free', plot)
             self._plot_together(df[['avg_buff', 'std_buff']], 'Memory usage: buff [GB]', 'mem', 'buff', plot)
             self._plot_together(df[['avg_cach', 'std_cach']], 'Memory usage: cach [GB]', 'mem', 'cach', plot)
-            self._plot_together(df[['sum_used', 'cumsum_used']], 'Cumulative Memory usage: used [GB]', 'mem', ['sum_used', 'cumsum_used'], plot, clean=True)
+
+            if self.cumulative_feat:
+                self._plot_together(df[['sum_used', 'cumulative_used']], 'Memory usage: used [GB] and Cumulative',
+                                    'mem', 'used', plot)
         else:  # disk
             self._plot_together(df[['avg_read', 'std_read']], 'Disk Volume: read [MB]', 'dsk', 'read', plot)
             self._plot_together(df[['avg_writ', 'std_writ']], 'Disk volume: write [MB]', 'dsk', 'writ', plot)
-            self._plot_together(df[['sum_read', 'cumsum_read']], 'Cumulative Disk Volume: read [MB]', 'dsk', ['sum_read', 'cumsum_read'], plot, clean=True)
-            self._plot_together(df[['sum_writ', 'cumsum_writ']], 'Cumulative Disk volume: write [MB]', 'dsk', ['sum_writ', 'cumsum_writ'], plot, clean=True)
+
+            if self.cumulative_feat:
+                self._plot_together(df[['sum_read', 'cumulative_read']], 'Disk Volume: read [MB] and Cumulative',
+                                    'dsk', 'read', plot)
+                self._plot_together(df[['sum_writ', 'cumulative_writ']], 'Disk volume: write [MB] and Cumulative',
+                                    'dsk', 'writ', plot)
 
     def plot_clean(self, df, mod='', plot=False):
         """
@@ -477,12 +491,27 @@ class DStatAggregate(object):
             tmp = df
             tmp['total'] = df['avg_send'] + df['avg_recv']
             self._plot_together(tmp[['avg_send','total']], 'Network [MBps]', 'net', ['send', 'Total'], plot, clean=True)
+            if self.cumulative_feat:
+                self._plot_together(df[['sum_send', 'cumulative_send']], 'Cumulative Network Bandwidth: sent [MBps]',
+                                    'net', ['sum_send', 'cumulative_send'], plot, clean=True)
+                self._plot_together(df[['sum_recv', 'cumulative_recv']], 'Cumulative Network Bandwidth: received [MBps]',
+                                    'net', ['sum_recv', 'cumulative_recv'], plot, clean=True)
         elif mod == 'mem':
             self._plot_together(df[['avg_used']], 'Memory [GB]', 'mem', ['used'], plot, clean=True)
+            if self.cumulative_feat:
+                self._plot_together(df[['sum_used', 'cumulative_used']], 'Cumulative Memory usage: used [GB]',
+                                    'mem', ['sum_used', 'cumulative_used'], plot, clean=True)
+
         else:  # disk
             tmp = df
             tmp['total'] = df['avg_read'] + df['avg_writ']
-            self._plot_together(tmp[['avg_read', 'total']], 'Disk Volume [MB]', 'dsk', ['read', 'Total'], plot, clean=True)
+            self._plot_together(tmp[['avg_read', 'total']], 'Disk Volume [MB]', 'dsk',
+                                ['read', 'Total'], plot, clean=True)
+            if self.cumulative_feat:
+                self._plot_together(df[['sum_read', 'cumulative_read']], 'Cumulative Disk Volume: read [MB]',
+                                    'dsk', ['sum_read', 'cumulative_read'], plot, clean=True)
+                self._plot_together(df[['sum_writ', 'cumulative_writ']], 'Cumulative Disk volume: write [MB]',
+                                    'dsk', ['sum_writ', 'cumulative_writ'], plot, clean=True)
 
 
     def _to_runtime(self):
@@ -582,13 +611,26 @@ class DStatAggregate(object):
         else:
             plt.figure()
             plt.title(plot_title)
-            plt.plot(df.index, df['avg_' + metrics], 'k', label=metrics + ' avg')
-            plt.fill_between(
-                df.index,
-                df['avg_' + metrics] - 2*df['std_' + metrics],
-                df['avg_' + metrics] + 2*df['std_' + metrics],
-                color='b',
-                alpha=0.2)
+
+            try:
+                plt.plot(df.index, df['avg_' + metrics], 'k', label=metrics + ' avg')
+                plt.fill_between(
+                    df.index,
+                    df['avg_' + metrics] - 2*df['std_' + metrics],
+                    df['avg_' + metrics] + 2*df['std_' + metrics],
+                    color='b',
+                    alpha=0.2)
+            except (IndexError, ZeroDivisionError):
+                plt.plot(df.index, df['sum_' + metrics], 'k', label=metrics + ' sum')
+                save_title += '-sum'
+                # IndexError means we are plotting the cumulative chart for the current metric
+                plt.fill_between(
+                    df.index,
+                    df['sum_' + metrics],
+                    df['sum_' + metrics] + df['cumulative_' + metrics],
+                    color='b',
+                    alpha=0.2)
+
             ax = plt.gca()
             self._set_layout(ax, plot_title, device)
 
