@@ -215,6 +215,78 @@ def aggregating_evaluation(dir, save=False, filename="", plot=False, grain=False
     return dagg.get_date(), dagg.get_nodes_list()
 
 
+def get_immediate_subdirectories(a_dir):
+    return [name for name in os.listdir(a_dir)
+            if os.path.isdir(os.path.join(a_dir, name))]
+
+def aggregating_evaluation_benchmark(suite_dir, save=False, filename="", plot=False, grain=False):
+    dagg_list = []
+    items_max = dict()
+    items_max['runtimeMax'] = -1
+
+    dir_list = get_immediate_subdirectories(suite_dir)
+
+    #calculate statistics
+    for dir in dir_list:
+        file_list = os.listdir(dir)
+
+        aggr_dir = dir + '/aggregation_benchmark'
+        if not os.path.exists(aggr_dir):
+            os.makedirs(aggr_dir)
+
+        if filename:  # a file name is given in input, initialize DStatAggregate object with given filename
+            dfs = None
+        else:
+            dfs = []
+            for fn in file_list:
+                # from here the path has to be absolute
+                fullname = os.path.join(dir, fn)
+                if evaluate_file(fn, fullname):
+                    try:
+                        df = DStatFrame(fullname, get_result_dir_name(fullname))
+                        dfs.append(df)
+                    except DStatReadColumnsException as e:
+                        print "Wrong columns specified. " + e.message
+                        exit(-1)
+        dagg = DStatAggregate(dir, aggr_dir, dfs, filename=filename, grain=grain)
+        dagg_list.append(dagg)
+
+
+
+        #check maxima
+        for k, v in dagg.get_dict().iteritems():
+            # check maximum runtime
+            df = v
+            start = df.index.values[0]
+            end = df.index.values[-1]
+            if (end - start > items_max['runtimeMax']):
+                items_max['runtimeMax'] = end - start
+
+            for column in list(v.columns.values):
+                c = ""
+                current_max = -1
+                if (column[1] == ""):
+                    c = column[0]
+                    current_max = df[[c]].max(axis=0).max(axis=0)
+                else:
+                    c = column[2]
+                    current_max = df.iloc[:, df.columns.get_level_values(2) == c].max(axis=0).max(axis=0)
+                if c in items_max:
+                    items_max[c] = current_max if current_max > items_max[c] else items_max[c]
+                else:
+                    items_max[c] = current_max
+
+    #draw charts
+    for dagg in dagg_list:
+        if save:
+            dagg.to_csv()
+
+        for k, v in dagg.get_dict().iteritems():
+            dagg.plot_aggr(v, mod=k, plot=plot)
+            dagg.plot_clean(v, mod=k, plot=plot, maxima=items_max)
+
+
+
 def shee(input_dir, filename=None, processor=None, eth=None, sd=None, comparison=None, cpu=None, network=None,
          memory=None, disk=None, plot=False, grain=False, web=False, noparse=False, aggregate=False, save_agg=False,
          file_agg=None):
@@ -386,7 +458,8 @@ def shee(input_dir, filename=None, processor=None, eth=None, sd=None, comparison
     if aggregate or web:
         save = save_agg
         filename = file_agg if file_agg is not None else ''
-        date, nodes = aggregating_evaluation(input_dir, save=save, filename=filename, plot=plot, grain=grain)
+        #date, nodes = aggregating_evaluation(input_dir, save=save, filename=filename, plot=plot, grain=grain)
+        aggregating_evaluation_benchmark(input_dir, save=save, filename=filename, plot=plot, grain=grain)
 
     if web:
         web_obj = WebObject()

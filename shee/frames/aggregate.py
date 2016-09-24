@@ -421,7 +421,7 @@ class DStatAggregate(object):
         df.drop(to_drop.columns.values, axis=1, inplace=True)
         return df
 
-    def plot_aggr(self, df, mod='', plot=False):
+    def plot_aggr(self, df, mod='', plot=False, maxima=dict()):
         """
         Plotting aggregating results for each device metrics
         :param df: input dataframe which contains results to plot
@@ -435,30 +435,26 @@ class DStatAggregate(object):
         # print df['epoch']
 
         if mod == 'cpu':
-            self._plot_together(df[['avg_usr', 'std_usr']], 'CPU usage: user [%]', 'cpu', 'usr', plot)
-            self._plot_together(df[['avg_sys', 'std_sys']], 'CPU usage: system [%]', 'cpu', 'sys', plot)
-            self._plot_together(df[['avg_idl', 'std_idl']], 'CPU usage: idle [%]', 'cpu', 'idl', plot)
-            self._plot_together(df[['avg_wai', 'std_wai']], 'CPU usage: wait [%]', 'cpu', 'wai', plot)
-            self._plot_together(df[['avg_hiq', 'std_hiq']], 'CPU usage: hiq [%]', 'cpu', 'hiq', plot)
-            self._plot_together(df[['avg_siq', 'std_siq']], 'CPU usage: siq [%]', 'cpu', 'siq', plot)
+            self._plot_together(df[['avg_usr', 'std_usr']], 'CPU usage: user [%]', 'cpu', 'usr', plot, maxima=maxima)
+            self._plot_together(df[['avg_sys', 'std_sys']], 'CPU usage: system [%]', 'cpu', 'sys', plot, maxima=maxima)
+            self._plot_together(df[['avg_idl', 'std_idl']], 'CPU usage: idle [%]', 'cpu', 'idl', plot, maxima=maxima)
+            self._plot_together(df[['avg_wai', 'std_wai']], 'CPU usage: wait [%]', 'cpu', 'wai', plot, maxima=maxima)
+            self._plot_together(df[['avg_hiq', 'std_hiq']], 'CPU usage: hiq [%]', 'cpu', 'hiq', plot, maxima=maxima)
+            self._plot_together(df[['avg_siq', 'std_siq']], 'CPU usage: siq [%]', 'cpu', 'siq', plot, maxima=maxima)
         elif mod == 'net':
-            self._plot_together(df[['avg_send', 'std_send']], 'Network Bandwidth: sent [MBps]', 'net', 'send', plot)
-            self._plot_together(df[['avg_recv', 'std_recv']], 'Network Bandwidth: received [MBps]', 'net', 'recv', plot)
-            self._plot_together(df[['sum_send', 'cumsum_send']], 'Cumulative Network Bandwidth: sent [MBps]', 'net', ['sum_send', 'cumsum_send'], plot, clean=True)
-            self._plot_together(df[['sum_recv', 'cumsum_recv']], 'Cumulative Network Bandwidth: received [MBps]', 'net', ['sum_recv', 'cumsum_recv'], plot, clean=True)
+            self._plot_together(df[['avg_send', 'std_send']], 'Network Bandwidth: sent [MBps]', 'net', 'send', plot, maxima=maxima)
+            self._plot_together(df[['avg_recv', 'std_recv']], 'Network Bandwidth: received [MBps]', 'net', 'recv', plot, maxima=maxima)
         elif mod == 'mem':
-            self._plot_together(df[['avg_used', 'std_used']], 'Memory usage: used [GB]', 'mem', 'used', plot)
-            self._plot_together(df[['avg_free', 'std_free']], 'Memory usage: free [GB]', 'mem', 'free', plot)
-            self._plot_together(df[['avg_buff', 'std_buff']], 'Memory usage: buff [GB]', 'mem', 'buff', plot)
-            self._plot_together(df[['avg_cach', 'std_cach']], 'Memory usage: cach [GB]', 'mem', 'cach', plot)
-            self._plot_together(df[['sum_used', 'cumsum_used']], 'Cumulative Memory usage: used [GB]', 'mem', ['sum_used', 'cumsum_used'], plot, clean=True)
+            self._plot_together(df[['avg_used', 'std_used']], 'Memory usage: used [GB]', 'mem', 'used', plot, maxima=maxima)
+            self._plot_together(df[['avg_free', 'std_free']], 'Memory usage: free [GB]', 'mem', 'free', plot, maxima=maxima)
+            self._plot_together(df[['avg_buff', 'std_buff']], 'Memory usage: buff [GB]', 'mem', 'buff', plot, maxima=maxima)
+            self._plot_together(df[['avg_cach', 'std_cach']], 'Memory usage: cach [GB]', 'mem', 'cach', plot, maxima=maxima)
         else:  # disk
-            self._plot_together(df[['avg_read', 'std_read']], 'Disk Volume: read [MB]', 'dsk', 'read', plot)
-            self._plot_together(df[['avg_writ', 'std_writ']], 'Disk volume: write [MB]', 'dsk', 'writ', plot)
-            self._plot_together(df[['sum_read', 'cumsum_read']], 'Cumulative Disk Volume: read [MB]', 'dsk', ['sum_read', 'cumsum_read'], plot, clean=True)
-            self._plot_together(df[['sum_writ', 'cumsum_writ']], 'Cumulative Disk volume: write [MB]', 'dsk', ['sum_writ', 'cumsum_writ'], plot, clean=True)
+            self._plot_together(df[['avg_read', 'std_read']], 'Disk Volume: read [MB]', 'dsk', 'read', plot, maxima=maxima)
+            self._plot_together(df[['avg_writ', 'std_writ']], 'Disk volume: write [MB]', 'dsk', 'writ', plot, maxima=maxima)
 
-    def plot_clean(self, df, mod='', plot=False):
+
+    def plot_clean(self, df, mod='', plot=False, maxima=dict()):
         """
         Plotting aggregating results for each device metrics without stddev info and in a <paper shaped> way
         There are two cases with multiple metrics to plot:
@@ -472,18 +468,30 @@ class DStatAggregate(object):
         """
 
         if mod == 'cpu':
-            self._plot_together(df[['avg_usr']], 'CPU usage [%]', 'cpu', ['usr'], plot, clean=True)
+            self._plot_together(df[['avg_usr']], 'CPU usage [%]', 'cpu', ['usr'], plot, clean=True, maxima=maxima)
         elif mod == 'net':
             tmp = df
             tmp['total'] = df['avg_send'] + df['avg_recv']
-            self._plot_together(tmp[['avg_send','total']], 'Network [MBps]', 'net', ['send', 'Total'], plot, clean=True)
+            self._plot_together(tmp[['avg_send','total']], 'Network [MBps]', 'net', ['send', 'Total'], plot, clean=True, maxima=maxima)
+
+            self._plot_together(df[['cumsum_send']], 'Cumulative Network Bandwidth: sent [MBps]', 'net',
+                                ['cumsum_send'], plot, clean=True, maxima=maxima)
+            self._plot_together(df[['cumsum_recv']], 'Cumulative Network Bandwidth: received [MBps]', 'net',
+                                ['cumsum_recv'], plot, clean=True, maxima=maxima)
+
         elif mod == 'mem':
-            self._plot_together(df[['avg_used']], 'Memory [GB]', 'mem', ['used'], plot, clean=True)
+            self._plot_together(df[['avg_used']], 'Memory [GB]', 'mem', ['used'], plot, clean=True, maxima=maxima)
+            self._plot_together(df[['cumsum_used']], 'Cumulative Memory usage: used [GB]', 'mem',
+                                ['cumsum_used'], plot, clean=True, maxima=maxima)
+
         else:  # disk
             tmp = df
             tmp['total'] = df['avg_read'] + df['avg_writ']
-            self._plot_together(tmp[['avg_read', 'total']], 'Disk Volume [MB]', 'dsk', ['read', 'Total'], plot, clean=True)
-
+            self._plot_together(tmp[['avg_read', 'total']], 'Disk Volume [MB]', 'dsk', ['read', 'Total'], plot, clean=True, maxima=maxima)
+            self._plot_together(df[[ 'cumsum_read']], 'Cumulative Disk Volume: read [MB]', 'dsk',
+                                ['cumsum_read'], plot, clean=True, maxima=maxima)
+            self._plot_together(df[['cumsum_writ']], 'Cumulative Disk volume: write [MB]', 'dsk',
+                                ['cumsum_writ'], plot, clean=True, maxima=maxima)
 
     def _to_runtime(self):
         """
@@ -517,7 +525,7 @@ class DStatAggregate(object):
                 ret += (m + sep)
             return ret[:-1]
 
-    def _plot_together(self, df, plot_title, device, metrics, plot=False, clean=False):
+    def _plot_together(self, df, plot_title, device, metrics, plot=False, clean=False, maxima=dict()):
         """
 
         Plot together handles the aggregated plots, we have a two cases
@@ -559,10 +567,16 @@ class DStatAggregate(object):
                     fontsize=30,
                     color=self.COLORS[1],
                     clip_on=True)
+
+                if len(maxima) > 0:
+                    key = list(df.columns.values)[0]
+                    ax.set_xlim([0,maxima['runtimeMax']])
+                    ax.set_ylim([0,maxima[key]])
             else:
                 ax = plt.gca()
                 # met is the reversed list of metrics - print the Total in background then the rest on it
                 # i preserves the original metrics indexing - needed for style purposes
+                local_max = -1
                 for i, met in reversed(list(enumerate(metrics))):
                     ax = df.plot(
                         kind='area',
@@ -575,6 +589,13 @@ class DStatAggregate(object):
                         linewidth=3+i,
                         stacked=False,
                         clip_on=True)
+                    if len(maxima) > 0 and met in maxima and local_max < maxima[met]:
+                        local_max = maxima[met]
+
+
+                if len(maxima) > 0:
+                        ax.set_xlim([0,maxima['runtimeMax']])
+                        ax.set_ylim([0,local_max])
 
             ax = plt.gca() if ax is None else ax
             self._set_layout(ax, plot_title, device, fontsize=30)
@@ -583,6 +604,9 @@ class DStatAggregate(object):
             plt.figure()
             plt.title(plot_title)
             plt.plot(df.index, df['avg_' + metrics], 'k', label=metrics + ' avg')
+            if len(maxima) > 0:
+                plt.xlim((0, maxima['runtimeMax']))
+                plt.ylim((0, maxima['avg_' + metrics] + 2 * maxima['std_' + metrics]))
             plt.fill_between(
                 df.index,
                 df['avg_' + metrics] - 2*df['std_' + metrics],
