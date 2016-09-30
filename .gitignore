@@ -4,12 +4,10 @@
 # Setuptools distribution folder.
 /dist/
 
-# Python egg metadata, regenerated from source files by setuptools.
+# Python egg metadata, regenerated frs
 /*.egg-info
 
 # IDE files
-**/.idea/workspace.xml
-**/.idea/tasks.xml
-**/.idea/modules.xml
+.idea/*
 *.iws
 *.iml

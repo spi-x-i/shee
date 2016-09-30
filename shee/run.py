@@ -293,7 +293,7 @@ def aggregating_evaluation(suite_dir, save=False, filename="", plot=False, grain
             dagg.plot_clean(v, mod=k, plot=plot)
 
         if comparable:
-            dagg.set_outdir(dir + '/aggregation_benchmark')
+            dagg.set_outdir(dagg.get_outdir() + '_benchmark')
             for k, v in dagg.get_dict().iteritems():
                 dagg.plot_aggr(v, mod=k, plot=plot, maxima=items_max)
                 dagg.plot_clean(v, mod=k, plot=plot, maxima=items_max)
