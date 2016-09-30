@@ -50,6 +50,9 @@ class WebObject(object):
     def _get_aggr_name(self, exp=''):
         return self._get_fullname() + '-agg' + str(exp) + '.html'
 
+    def _get_aggr_comp_name(self, exp=''):
+        return self._get_fullname() + '-agg-comp' + str(exp) + '.html'
+
     @staticmethod
     def _main_head():
         return '''
@@ -349,13 +352,20 @@ class WebObject(object):
 
         message += '<br><a href="' + self._get_aggr_name() + ' ">go to aggregation results</a><br>'
 
+        message += '<br><a href="' + self._get_aggr_comp_name() + ' ">go to comparable aggregation results</a><br>'
+
         basedir = os.path.join(self.dirname, os.pardir)
 
         img_counter = 0
         for item in d['children']:  # for each main directory dstat-hadoop-cloud-x ...
             if item['type'] == 'directory' and item['name'] == 'aggregation':
+                base = basedir
                 self._create_aggregation_page(
-                    basedir=os.path.join(basedir, item['name']),
+                    basedir=os.path.join(base, item['name']),
+                    agg_date=agg_date,
+                    nodes=agg_nodes)
+                self._create_aggregation_comparable_page(
+                    basedir=os.path.join(base, item['name']),
                     agg_date=agg_date,
                     nodes=agg_nodes)
             elif item['type'] == 'directory' and item['name'].startswith('dstat'):
@@ -549,3 +559,61 @@ class WebObject(object):
         f.close()
 
         return
+
+    def _create_aggregation_comparable_page(self, basedir, exp='', agg_date=None, nodes=None):
+
+        f = open(self._get_aggr_comp_name(exp), 'w')
+        d = self._recursive_set(basedir)
+
+        message = self._device_head()
+
+        img_counter = 0
+        quote_counter = 0
+
+        message += '<h3>Experiment date: %s</h3>' % str(agg_date)
+        message += '<h3>Experiment nodes involved: '
+
+        nodes.sort()
+        for x in nodes:
+            message += str(x) + ', '
+        message += '</h3>'
+
+        for item in d['children']:  # stuffs inside aggregation directory
+            if item['type'] == 'directory':
+                message += '<br style="clear:both"><h3>' + item['name'] + '</h3>'
+                message += '<div id="quotescontainer">'
+                device_dir = basedir + '_benchmark'
+
+                for device in item['children']:  # here images for each device
+
+                    if quote_counter > 2:
+                        quote_counter = 0
+                        message += '</div>'
+                        message += '<div id="quotescontainer">'
+
+                    message += '<div id="quotes' + str(quote_counter) + '">'
+                    quote_counter += 1
+                    message += "<h5>" + device['name'].split('-')[-1].split('.')[0] + "</h5>"
+                    new_dir = os.path.join(device_dir, item['name'])
+                    src = 'file://' + os.path.join(new_dir, device['name'])
+                    message += '<img id="myImg' + str(img_counter) + '" src="' + src + '">'
+                    message += '</div>'
+                    img_counter += 1
+                if quote_counter <= 2:
+                    while quote_counter <= 2:
+                        message += '<div id="quotes' + str(quote_counter) + '"></div>'
+                        quote_counter += 1
+                    quote_counter = 0
+                    message += '</div>'
+
+        message += '</div>'
+
+        message += self.modal()
+        message += self.scriptjs(img_counter)
+        message += self.footer()
+
+        f.write(message)
+        f.close()
+
+        return
+

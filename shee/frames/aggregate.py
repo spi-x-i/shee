@@ -83,6 +83,7 @@ class DStatAggregate(object):
         # turn the indexes from datetimes to runtimes in seconds
         self._to_runtime()
 
+        self.inputdir = input_dir
         self.outdir = output_dir
 
     def get_dict(self):
@@ -99,6 +100,9 @@ class DStatAggregate(object):
 
     def get_outdir(self):
         return self.outdir
+
+    def get_inputdir(self):
+        return self.inputdir
 
     def get_nodes_list(self):
         """ get nodes list """

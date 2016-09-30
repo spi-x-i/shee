@@ -181,6 +181,7 @@ def comparison_evaluation(fullname, dirname, columns, plot, grain=False, df=None
         exit(-1)
 
 
+'''
 def aggregating_evaluation(dir, save=False, filename="", plot=False, grain=False, comparable=False):
     dagg_list = []
     items_max = dict()
@@ -216,7 +217,7 @@ def aggregating_evaluation(dir, save=False, filename="", plot=False, grain=False
         dagg.plot_clean(v, mod=k, plot=plot)
 
     return dagg.get_date(), dagg.get_nodes_list()
-
+'''
 
 def get_immediate_subdirectories(a_dir):
     return [name for name in os.listdir(a_dir)
@@ -227,13 +228,19 @@ def aggregating_evaluation(suite_dir, save=False, filename="", plot=False, grain
     items_max = dict()
     items_max['runtimeMax'] = -1
 
-    #TODO: real folder structure here
-    #check whether we are in a suite result dir
-    #or already in the experiment dir
+    multipleExperimentsMode = False
+
     dir_list = get_immediate_subdirectories(suite_dir)
+
+    if len(dir_list) > 1 and os.path.isdir(dir_list[0] + '/logs/dstat/dstat-0.7.2'):
+        multipleExperimentsMode = True
 
     #calculate statistics
     for dir in dir_list:
+
+        if multipleExperimentsMode:
+            dir = dir + '/logs/dstat/dstat-0.7.2'
+
         file_list = os.listdir(dir)
 
         aggr_dir = dir + '/aggregation'
@@ -298,7 +305,7 @@ def aggregating_evaluation(suite_dir, save=False, filename="", plot=False, grain
                 dagg.plot_aggr(v, mod=k, plot=plot, maxima=items_max)
                 dagg.plot_clean(v, mod=k, plot=plot, maxima=items_max)
 
-
+    return dagg_list
 
 
 
@@ -475,24 +482,36 @@ def shee(input_dir, filename=None, processor=None, eth=None, sd=None, comparison
         save = save_agg
         filename = file_agg if file_agg is not None else ''
         print "comp: " + str(comparable)
-        aggregating_evaluation(input_dir, save=save, filename=filename, plot=plot, grain=grain, comparable = comparable)
+        dagg_list = aggregating_evaluation(input_dir, save=save, filename=filename, plot=plot, grain=grain, comparable = comparable)
         #TODO: how to get the right date + nodes for all experiments here?
 
     if web:
-        web_obj = WebObject()
-        if os.path.isabs(input_dir):
-            work_dir = input_dir
-            web_obj.set_dirname(work_dir + '/html')
-            web_obj.set_pathtree(work_dir)
-            if not os.path.exists(work_dir + '/html'):
-                os.makedirs(work_dir + '/html')
-        else:
-            work_dir = os.getcwd() + '/' + '/'.join(input_dir.split('/'))
-            web_obj.set_dirname(work_dir + '/html')
-            web_obj.set_pathtree(work_dir)
-            if not os.path.exists(work_dir + '/html'):
-                os.makedirs(work_dir + '/html')
-        web_obj.set_filename('mainpage')
+        for dagg in dagg_list:
+            web_obj = WebObject()
+            work_dir = input_dir + '/' + dagg.get_inputdir()
 
-        web_obj.page(agg_date=date, agg_nodes=nodes)
+            print work_dir
+
+            web_obj.set_dirname(work_dir + '/html')
+            web_obj.set_pathtree(work_dir)
+            if not os.path.exists(work_dir + '/html'):
+                os.makedirs(work_dir + '/html')
+            '''
+            if os.path.isabs(input_dir):
+                work_dir = input_dir
+                web_obj.set_dirname(dagg.get_outdir() + '_html')
+                web_obj.set_pathtree(work_dir)
+                if not os.path.exists(work_dir + '/html'):
+                    os.makedirs(work_dir + '/html')
+            else:
+                work_dir = os.getcwd() + '/' + '/'.join(input_dir.split('/'))
+                web_obj.set_dirname(work_dir + '/html')
+                web_obj.set_pathtree(work_dir)
+                if not os.path.exists(work_dir + '/html'):
+                    os.makedirs(work_dir + '/html')
+            '''
+
+            web_obj.set_filename('mainpage')
+
+            web_obj.page(agg_date=dagg.get_date(), agg_nodes=dagg.get_nodes_list())
         exit(0)
