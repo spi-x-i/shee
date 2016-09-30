@@ -181,7 +181,10 @@ def comparison_evaluation(fullname, dirname, columns, plot, grain=False, df=None
         exit(-1)
 
 
-def aggregating_evaluation(dir, save=False, filename="", plot=False, grain=False):
+def aggregating_evaluation(dir, save=False, filename="", plot=False, grain=False, comparable=False):
+    dagg_list = []
+    items_max = dict()
+    items_max['runtimeMax'] = -1
 
     file_list = os.listdir(dir)
 
@@ -219,18 +222,21 @@ def get_immediate_subdirectories(a_dir):
     return [name for name in os.listdir(a_dir)
             if os.path.isdir(os.path.join(a_dir, name))]
 
-def aggregating_evaluation_benchmark(suite_dir, save=False, filename="", plot=False, grain=False):
+def aggregating_evaluation(suite_dir, save=False, filename="", plot=False, grain=False, comparable=False):
     dagg_list = []
     items_max = dict()
     items_max['runtimeMax'] = -1
 
+    #TODO: real folder structure here
+    #check whether we are in a suite result dir
+    #or already in the experiment dir
     dir_list = get_immediate_subdirectories(suite_dir)
 
     #calculate statistics
     for dir in dir_list:
         file_list = os.listdir(dir)
 
-        aggr_dir = dir + '/aggregation_benchmark'
+        aggr_dir = dir + '/aggregation'
         if not os.path.exists(aggr_dir):
             os.makedirs(aggr_dir)
 
@@ -281,14 +287,23 @@ def aggregating_evaluation_benchmark(suite_dir, save=False, filename="", plot=Fa
         if save:
             dagg.to_csv()
 
+        # not comparable with respect to different experiments
         for k, v in dagg.get_dict().iteritems():
             dagg.plot_aggr(v, mod=k, plot=plot)
-            dagg.plot_clean(v, mod=k, plot=plot, maxima=items_max)
+            dagg.plot_clean(v, mod=k, plot=plot)
+
+        if comparable:
+            dagg.set_outdir(dir + '/aggregation_benchmark')
+            for k, v in dagg.get_dict().iteritems():
+                dagg.plot_aggr(v, mod=k, plot=plot, maxima=items_max)
+                dagg.plot_clean(v, mod=k, plot=plot, maxima=items_max)
+
+
 
 
 
 def shee(input_dir, filename=None, processor=None, eth=None, sd=None, comparison=None, cpu=None, network=None,
-         memory=None, disk=None, plot=False, grain=False, web=False, noparse=False, aggregate=False, save_agg=False,
+         memory=None, disk=None, plot=False, grain=False, web=False, noparse=False, aggregate=False, comparable=False, save_agg=False,
          file_agg=None):
     """
 
@@ -307,6 +322,7 @@ def shee(input_dir, filename=None, processor=None, eth=None, sd=None, comparison
     :param web:
     :param noparse:
     :param aggregate:
+    :param comparable:
     :param save_agg:
     :param file_agg:
     :return:
@@ -458,8 +474,9 @@ def shee(input_dir, filename=None, processor=None, eth=None, sd=None, comparison
     if aggregate or web:
         save = save_agg
         filename = file_agg if file_agg is not None else ''
-        #date, nodes = aggregating_evaluation(input_dir, save=save, filename=filename, plot=plot, grain=grain)
-        aggregating_evaluation_benchmark(input_dir, save=save, filename=filename, plot=plot, grain=grain)
+        print "comp: " + str(comparable)
+        aggregating_evaluation(input_dir, save=save, filename=filename, plot=plot, grain=grain, comparable = comparable)
+        #TODO: how to get the right date + nodes for all experiments here?
 
     if web:
         web_obj = WebObject()

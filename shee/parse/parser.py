@@ -22,6 +22,7 @@ class SheeParser(object):
         'time': 'If specified, a time interval will be requested',
         'web': 'If specified, an html page will be rendered',
         'aggregate': 'If specified, aggregated results will be computed',
+        'comparable': 'If specified, all charts for all experiments will have the same metrics',
         'save_agg': 'Stores new .csv files with global aggregated results (one per metric)',
         'file_agg': 'Searches FILE_AGG file in the working directory and computes evaluation',
     }
@@ -74,6 +75,7 @@ class SheeParser(object):
         self.parser.add_argument("-w", "--web",         help=self.HELPS['web'],         action="store_true")
 
         self.parser.add_argument("-a", "--aggregate",   help=self.HELPS['aggregate'],   action="store_true")
+        self.parser.add_argument("-cmp", "--comparable",help=self.HELPS['comparable'],   action="store_true")
         self.parser.add_argument("-s", "--save_agg",    help=self.HELPS['save_agg'],    action="store_true")
         self.parser.add_argument("-F", "--file_agg",    help=self.HELPS['file_agg'],    type=str)
 

@@ -93,6 +93,9 @@ class DStatAggregate(object):
         """ get date """
         return self.date
 
+    def set_outdir(self, dir):
+        self.outdir = dir
+
     def get_nodes_list(self):
         """ get nodes list """
         return self.nodes

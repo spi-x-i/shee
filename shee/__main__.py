@@ -50,6 +50,7 @@ def main(args=None):
     web = args.web
 
     aggregate = args.aggregate
+    comparable = args.comparable
     save_agg = args.save_agg
     file_agg = args.file_agg
 
@@ -63,7 +64,7 @@ def main(args=None):
     noparse = args.noparse
 
     shee(input_dir, filename, processor, eth, sd, comparison, cpu, network, memory,
-         disk, plot, time, web, noparse, aggregate, save_agg, file_agg)
+         disk, plot, time, web, noparse, aggregate, comparable, save_agg, file_agg)
 
 
 if __name__ == "__main__":
